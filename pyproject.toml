@@ -13,7 +13,9 @@ keywords = ["project-template", "python", "uv"]
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
-dependencies = []
+dependencies = [
+    "loguru>=0.7.3",
+]
 
 [project.urls]
 Homepage = "https://github.com/<username>/<repository-name>"

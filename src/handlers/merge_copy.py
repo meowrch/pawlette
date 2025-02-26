@@ -13,8 +13,8 @@ class MergeCopyHandler(BaseHandler):
         dst.mkdir(parents=True, exist_ok=True)
 
         # Копируем с объединением
-        for item in dst.iterdir():
-            dest = src / item.name
+        for item in src.iterdir():
+            dest = dst / item.name
             if item.is_dir():
                 shutil.copytree(item, dest, dirs_exist_ok=True)
             else:

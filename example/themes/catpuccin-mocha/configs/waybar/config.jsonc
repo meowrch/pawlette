@@ -7,50 +7,63 @@
     "passthrough": false,
     "gtk-layer-shell": true,
     "reload_style_on_change": true,
-
     //==> Modules Layout
     ///////////////////////////////////////////////////////////////
-	"modules-left": [
-		"custom/l_end","tray","custom/r_end","custom/l_end","hyprland/workspaces","custom/r_end","custom/l_end","wlr/taskbar","custom/r_end","custom/padd"
-	],
-	"modules-center": [
-		"group/system-info"
-	],
-	"modules-right": [
-		"group/system-levels",
-		"custom/l_end","idle_inhibitor","clock","custom/r_end",
-        "custom/l_end","hyprland/language","custom/r_end",
-		"group/control-panel", "custom/padd"
-	],
+    "modules-left": [
+        "custom/l_end",
+        "tray",
+        "custom/r_end",
+        "custom/l_end",
+        "hyprland/workspaces",
+        "custom/r_end",
+        "custom/l_end",
+        "wlr/taskbar",
+        "custom/r_end",
+        "custom/padd"
+    ],
+    "modules-center": [
+        "group/system-info"
+    ],
+    "modules-right": [
+        "group/system-levels",
+        "custom/l_end",
+        "idle_inhibitor",
+        "clock",
+        "custom/r_end",
+        "custom/l_end",
+        "hyprland/language",
+        "custom/r_end",
+        "group/control-panel",
+        "custom/padd"
+    ],
     "group/system-info": {
-		"orientation": "horizontal",
-		"modules": [
-			"custom/cpu",
-			"custom/ram",
-			"custom/gpu"
-		]
-	},
-	"group/system-levels": {
-		"orientation": "horizontal",
-		"modules": [
-			"custom/brightness",
-			"custom/battery",
-			"custom/volume",
-			"custom/microphone"
-		]
-	},
-	"group/control-panel": {
-		"orientation": "horizontal",
-		"modules": [
-			"custom/system-update",
-			"custom/do-not-disturb",
-			"custom/vpn",
-			"custom/bluetooth",
-			"custom/networkmanager",
-			"custom/power"
-		]
-	},
-        
+        "orientation": "horizontal",
+        "modules": [
+            "custom/cpu",
+            "custom/ram",
+            "custom/gpu"
+        ]
+    },
+    "group/system-levels": {
+        "orientation": "horizontal",
+        "modules": [
+            "custom/brightness",
+            "custom/battery",
+            "custom/volume",
+            "custom/microphone"
+        ]
+    },
+    "group/control-panel": {
+        "orientation": "horizontal",
+        "modules": [
+            "custom/system-update",
+            "custom/do-not-disturb",
+            "custom/vpn",
+            "custom/bluetooth",
+            "custom/networkmanager",
+            "custom/power"
+        ]
+    },
     //==> Left Modules
     ///////////////////////////////////////////////////////////////
     "tray": {
@@ -68,51 +81,47 @@
         "on-scroll-down": "hyprctl dispatch workspace +1",
         "persistent-workspaces": {}
     },
-	"wlr/taskbar": {
-		"format": "{icon}",
-		"rotate": 0,
-		"icon-size": 18,
-		"icon-theme": "Tela-circle-dracula",
+    "wlr/taskbar": {
+        "format": "{icon}",
+        "rotate": 0,
+        "icon-size": 18,
+        "icon-theme": "Tela-circle-dracula",
         "spacing": 0,
-		"tooltip-format": "{title}",
-		"on-click": "activate",
-		"on-click-middle": "close",
-		"app_ids-mapping": {
-			"firefoxdeveloperedition": "firefox-developer-edition"
-		}
-	},
-
-
-
+        "tooltip-format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "app_ids-mapping": {
+            "firefoxdeveloperedition": "firefox-developer-edition"
+        }
+    },
     //==> Middle Modules
     ///////////////////////////////////////////////////////////////
     "custom/cpu": {
-		"exec": "python ~/bin/system-info.py --cpu --normal-color \"#f5c2e7\" --critical-color \"#f38ba8\" | cat",
-		"on-click": "python ~/bin/system-info.py --cpu --click",
-		"return-type": "json",
-		"format": "{}  ",
-		"rotate": 0,
-		"interval": 2,
-		"tooltip": true
-	},
-	"custom/ram": {
-		"exec": "python ~/bin/system-info.py --ram --normal-color \"#fab387\" --critical-color \"#f38ba8\" | cat",
-		"return-type": "json",
-		"format": "{}  ",
-		"rotate": 0,
-		"interval": 2,
-		"tooltip": true
-	},
-	"custom/gpu": {
-		"exec": "python ~/bin/system-info.py --gpu --normal-color \"#f5e0dc\" --critical-color \"#f38ba8\" | cat",
-		"on-click": "python ~/bin/system-info.py --gpu --click",
-		"return-type": "json",
-		"format": "{}",
-		"rotate": 0,
-		"interval": 2,
-		"tooltip": true
-	},
-
+        "exec": "python ~/bin/system-info.py --cpu --normal-color \"#f5c2e7\" --critical-color \"#f38ba8\" | cat",
+        "on-click": "python ~/bin/system-info.py --cpu --click",
+        "return-type": "json",
+        "format": "{}  ",
+        "rotate": 0,
+        "interval": 2,
+        "tooltip": true
+    },
+    "custom/ram": {
+        "exec": "python ~/bin/system-info.py --ram --normal-color \"#fab387\" --critical-color \"#f38ba8\" | cat",
+        "return-type": "json",
+        "format": "{}  ",
+        "rotate": 0,
+        "interval": 2,
+        "tooltip": true
+    },
+    "custom/gpu": {
+        "exec": "python ~/bin/system-info.py --gpu --normal-color \"#f5e0dc\" --critical-color \"#f38ba8\" | cat",
+        "on-click": "python ~/bin/system-info.py --gpu --click",
+        "return-type": "json",
+        "format": "{}",
+        "rotate": 0,
+        "interval": 2,
+        "tooltip": true
+    },
     //==> Right Modules
     ///////////////////////////////////////////////////////////////
     "clock": {
@@ -150,10 +159,10 @@
     "custom/battery": {
         "exec": "sh ~/bin/battery.sh --status --discharged-color \"#f38ba8\" --charged-color \"#a6e3a1\" | cat",
         "return-type": "raw",
-	    "format": "{}  ",
+        "format": "{}  ",
         "interval": 3,
-	    "rotate": 0,
-	    "on-click": "sh ~/bin/battery.sh --notify",
+        "rotate": 0,
+        "on-click": "sh ~/bin/battery.sh --notify",
         "tooltip": false
     },
     "custom/brightness": {
@@ -168,31 +177,31 @@
         "on-click-right": "sh ~/bin/brightness.sh --min",
         "tooltip": false
     },
-	"custom/volume": {
+    "custom/volume": {
         "exec": "sh ~/bin/volume.sh --device output --status --disabled-color \"#f38ba8\" --enabled-color \"#a6e3a1\" | cat",
         "return-type": "raw",
-	    "format": "{}  ",
+        "format": "{}  ",
         "interval": 1,
-	    "rotate": 0,
-	    "on-click": "sh ~/bin/volume.sh --device output --action toggle",
-	    "on-scroll-up": "sh ~/bin/volume.sh --device output --action increase",
-	    "on-scroll-down": "sh ~/bin/volume.sh --device output --action decrease",
-	    "scroll-step": 5,
+        "rotate": 0,
+        "on-click": "sh ~/bin/volume.sh --device output --action toggle",
+        "on-scroll-up": "sh ~/bin/volume.sh --device output --action increase",
+        "on-scroll-down": "sh ~/bin/volume.sh --device output --action decrease",
+        "scroll-step": 5,
         "tooltip": false
-	},
+    },
     "custom/microphone": {
         "exec": "sh ~/bin/volume.sh --device input --status --disabled-color \"#f38ba8\" --enabled-color \"#a6e3a1\" | cat",
         "return-type": "raw",
-	    "format": "{}",
+        "format": "{}",
         "interval": 1,
-	    "rotate": 0,
-	    "on-click": "sh ~/bin/volume.sh --device input --action toggle",
-	    "on-scroll-up": "sh ~/bin/volume.sh --device input --action increase",
-	    "on-scroll-down": "sh ~/bin/volume.sh --device input --action decrease",
-	    "scroll-step": 5,
+        "rotate": 0,
+        "on-click": "sh ~/bin/volume.sh --device input --action toggle",
+        "on-scroll-up": "sh ~/bin/volume.sh --device input --action increase",
+        "on-scroll-down": "sh ~/bin/volume.sh --device input --action decrease",
+        "scroll-step": 5,
         "tooltip": false
-	},
-	"hyprland/language": {
+    },
+    "hyprland/language": {
         "format": "{short} {variant}",
         "rotate": 0,
         "tooltip": false
@@ -246,31 +255,26 @@
         "rotate": 0,
         "tooltip": false
     },
-
-	
     //==> Other Modules
     ///////////////////////////////////////////////////////////////
     "custom/l_end": {
         "format": " ",
-        "interval" : "once",
+        "interval": "once",
         "tooltip": false
     },
-
     "custom/r_end": {
         "format": " ",
-        "interval" : "once",
+        "interval": "once",
         "tooltip": false
     },
-
     "custom/padd": {
         "format": "  ",
-        "interval" : "once",
+        "interval": "once",
         "tooltip": false
     },
-
     "custom/padd_bg": {
         "format": "  ",
-        "interval" : "once",
+        "interval": "once",
         "tooltip": false
     }
 }
