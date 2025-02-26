@@ -4,6 +4,7 @@ import argparse
 from loguru import logger
 
 import constants as cnst
+from config import generate_default_config
 from theming.manager import ThemeManager
 
 
@@ -14,6 +15,9 @@ def configure_argparser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(
         dest="command", required=True, title="subcommands", description="valid commands"
     )
+
+    # generate config
+    subparsers.add_parser("generate-config", help="Generate default configuration")
 
     # get themes
     subparsers.add_parser("get-themes", help="List all available themes")
@@ -34,6 +38,7 @@ def main() -> None:
         cnst.APP_CACHE_DIR,
         cnst.APP_CONFIG_DIR,
         cnst.THEMES_FOLDER,
+        cnst.APP_BACKUP_DIR,
     ]
 
     for p in dirs_to_create:
@@ -45,6 +50,8 @@ def main() -> None:
     args = parser.parse_args()
 
     match args.command:
+        case "generate-config":
+            generate_default_config()
         case "get-themes":
             themes = manager.get_all_themes()
             print("\n".join([i.name for i in themes]))

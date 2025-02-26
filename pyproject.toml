@@ -15,6 +15,7 @@ license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
 dependencies = [
     "loguru>=0.7.3",
+    "pydantic>=2.10.6",
 ]
 
 [project.urls]
