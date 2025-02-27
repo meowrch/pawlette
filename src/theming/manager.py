@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
 import constants as cnst
 from errors.themes import ThemeNotFound
-from scheme import HANDLERS
+
+from .merge_copy import MergeCopyHandler
 
 
 @dataclass
@@ -39,7 +40,7 @@ class ThemeManager:
         return list(themes.values())
 
     @staticmethod
-    def get_theme(theme_name: str) -> Optional[Theme]:
+    def get_theme(theme_name: str) -> Theme | None:
         """
         Gives the theme if it is found in the system or local catalog.
         If a theme with the same name is found in both directories,
@@ -71,28 +72,27 @@ class ThemeManager:
         Raises:
             ThemeNotFound: Theme not found
         """
-        theme: Optional[Theme] = ThemeManager.get_theme(theme_name)
+        theme: Theme | None = ThemeManager.get_theme(theme_name)
 
         if theme is None:
             logger.warning("theme not found")
             raise ThemeNotFound(theme_name)
 
+        handler = MergeCopyHandler(theme_name=theme_name)
+
         for app in (theme.path / "configs").iterdir():
             app_name = app.stem
-            handler = HANDLERS.get(app_name, None)
-
-            if not handler:
-                logger.warning(
-                    f'Handler for the application "{app_name}" was not found'
-                )
-                continue
+            reload_cmd = cnst.RELOAD_COMMANDS.get(app_name, None)
 
             try:
                 logger.info(
                     f'Applying theme for "{app_name}" application. {app} -> {cnst.XDG_CONFIG_HOME / app_name}'
                 )
-                handler.apply(src=app, dst=cnst.XDG_CONFIG_HOME / app_name)
-            except Exception as e:
+
+                handler.apply(
+                    src=app, dst=cnst.XDG_CONFIG_HOME / app_name, reload_cmd=reload_cmd
+                )
+            except Exception:
                 logger.warning(
-                    f'Theme application error for the "{app_name}" application: {e}'
+                    f'Theme application error for the "{app_name}" application: {traceback.format_exc()}'
                 )
