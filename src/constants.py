@@ -23,6 +23,17 @@ APP_CONFIG_FILE = APP_CONFIG_DIR / (APPLICATION_NAME + ".json")
 THEMES_FOLDER = APP_DATA_DIR / "themes"
 SYS_THEMES_FOLDER = Path(f"/usr/share/{APPLICATION_NAME}")
 
+# Команды перезагрузки для приложений
+RELOAD_COMMANDS = {
+    "hypr": "hyprctl reload",
+    "waybar": "killall -SIGUSR2 waybar",
+    "qt5ct": None,
+    "qt6ct": None,
+    "kitty": "killall -SIGUSR1 kitty",
+    "fish": None,
+    "starship": None,
+}
+
 
 # Форматы комментариев для разных расширений
 COMMENT_FORMATS = {
@@ -32,7 +43,7 @@ COMMENT_FORMATS = {
     ".toml": "#",
 }
 
-
+# Стандартная конфигурация
 DEFAULT_CONFIG = {
     "max_backups": 5,
     "comment_styles": COMMENT_FORMATS,
