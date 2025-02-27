@@ -93,6 +93,10 @@ class MergeCopyHandler:
 
     def run_command(self, command: str) -> None:
         try:
-            subprocess.run(command, shell=True, check=True)
+            subprocess.run(
+                command.split(),
+                check=True,
+                capture_output=True,
+            )
         except subprocess.CalledProcessError as e:
             print(f"Error executing command: {e.cmd}")
