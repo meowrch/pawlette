@@ -1,8 +1,12 @@
 import shutil
 import subprocess
+import traceback
 from pathlib import Path
 
 from loguru import logger
+
+import constants as cnst
+from schemas.themes import Theme
 
 from .patch_engine import PatchEngine
 
@@ -10,8 +14,26 @@ from .patch_engine import PatchEngine
 class MergeCopyHandler:
     __slots__ = "theme_name"
 
-    def __init__(self, theme_name: str) -> None:
-        self.theme_name = theme_name
+    def __init__(self, theme: Theme) -> None:
+        self.theme: Theme = theme
+
+    def apply_for_all_configs(self):
+        for app in (self.theme.path / "configs").iterdir():
+            app_name = app.stem
+            reload_cmd = cnst.RELOAD_COMMANDS.get(app_name, None)
+
+            try:
+                logger.info(
+                    f'Applying theme for "{app_name}" application. {app} -> {cnst.XDG_CONFIG_HOME / app_name}'
+                )
+
+                self.apply(
+                    src=app, dst=cnst.XDG_CONFIG_HOME / app_name, reload_cmd=reload_cmd
+                )
+            except Exception:
+                logger.warning(
+                    f'Theme application error for the "{app_name}" application: {traceback.format_exc()}'
+                )
 
     def apply(self, src: Path, dst: Path, reload_cmd: str = None):
         if not src.exists():
@@ -71,7 +93,7 @@ class MergeCopyHandler:
             if dst.exists():
                 logger.info(f"Patching file: {dst}")
                 PatchEngine.apply_to_file(
-                    theme_name=self.theme_name,
+                    theme_name=self.theme.name,
                     target_file=dst,
                     pre_content=p["pre"],
                     post_content=p["post"],

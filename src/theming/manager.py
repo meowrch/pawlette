@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
-import traceback
-from dataclasses import dataclass
-from pathlib import Path
-
 from loguru import logger
 
 import constants as cnst
 from errors.themes import ThemeNotFound
+from schemas.themes import Theme
 
 from .merge_copy import MergeCopyHandler
-
-
-@dataclass
-class Theme:
-    name: str
-    path: Path
 
 
 class ThemeManager:
@@ -78,21 +69,7 @@ class ThemeManager:
             logger.warning("theme not found")
             raise ThemeNotFound(theme_name)
 
-        handler = MergeCopyHandler(theme_name=theme_name)
-
-        for app in (theme.path / "configs").iterdir():
-            app_name = app.stem
-            reload_cmd = cnst.RELOAD_COMMANDS.get(app_name, None)
-
-            try:
-                logger.info(
-                    f'Applying theme for "{app_name}" application. {app} -> {cnst.XDG_CONFIG_HOME / app_name}'
-                )
-
-                handler.apply(
-                    src=app, dst=cnst.XDG_CONFIG_HOME / app_name, reload_cmd=reload_cmd
-                )
-            except Exception:
-                logger.warning(
-                    f'Theme application error for the "{app_name}" application: {traceback.format_exc()}'
-                )
+        ##==> Apply all configs
+        ##################################
+        merge = MergeCopyHandler(theme=theme)
+        merge.apply_for_all_configs()
