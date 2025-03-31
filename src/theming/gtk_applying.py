@@ -7,37 +7,13 @@ from typing import List
 from loguru import logger
 
 import constants as cnst
+from common.utils import create_symlink_dir
 from enums.session_type import LinuxSessionType
 from schemas.themes import Theme
 
 
 class GTKThemeApplier:
     """A class to handle GTK theme application on Linux systems."""
-
-    @staticmethod
-    def _create_symlink(target: Path, link: Path) -> bool:
-        """
-        Creates a symlink to a folder. Removes existing file/directory/symlink if present.
-
-        Args:
-            target: The path to the target folder
-            link: The path where the symlink will be created
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            if link.exists():
-                if link.is_dir() and not link.is_symlink():
-                    shutil.rmtree(link)
-                else:
-                    link.unlink()
-
-            link.symlink_to(target, target_is_dir=True)
-            return True
-        except OSError as e:
-            logger.error(f"Failed to create symlink from {link} to {target}: {e}")
-            return False
 
     @staticmethod
     def _update_gtk_config(config_path: Path, theme_name: str) -> bool:
@@ -170,12 +146,12 @@ class GTKThemeApplier:
             logger.warning(f"GTK theme folder not found: {theme.gtk_folder}")
             return
 
-        if not GTKThemeApplier._create_symlink(
-            target=theme.gtk_folder.absolute(), link=cnst.DEFAULT_GTK_THEME_FOLDER
+        if not create_symlink_dir(
+            target=theme.gtk_folder.absolute(), link=cnst.GTK_THEME_SYMLINK
         ):
             return
 
         GTKThemeApplier.apply_gtk_themes(
             gtk_configs=[cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG],
-            gtk_theme_name=cnst.DEFAULT_GTK_THEME_FOLDER.name,
+            gtk_theme_name=cnst.GTK_THEME_SYMLINK.name,
         )
