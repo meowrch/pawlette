@@ -4,18 +4,17 @@ from pathlib import Path
 
 from enums.session_type import LinuxSessionType
 
+##==> BASE
+##############################################################
+APPLICATION_NAME = "pawlette"
+APP_FOLDER = Path(__file__).resolve().parent
+
 ##==> Получаем пути в соответствии с XDG стандартами
 ##############################################################
 XDG_DATA_HOME = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
 XDG_CACHE_HOME = Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache"))
 XDG_CONFIG_HOME = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
 XDG_STATE_HOME = Path(os.getenv("XDG_STATE_HOME", Path.home() / ".local" / "state"))
-
-##==> Application paths
-##############################################################
-APPLICATION_NAME = "pawlette"
-APP_FOLDER = Path(__file__).resolve().parent
-DEFAULT_GTK_THEME_FOLDER = (Path.home() / ".themes" / "pawlette").absolute()
 
 ##==> Пути для данных, кэша и конфигураций приложения
 ##############################################################
@@ -28,6 +27,11 @@ APP_CONFIG_FILE = APP_CONFIG_DIR / (APPLICATION_NAME + ".json")
 
 THEMES_FOLDER = APP_DATA_DIR / "themes"
 SYS_THEMES_FOLDER = Path(f"/usr/share/{APPLICATION_NAME}")
+
+##==> Application paths
+##############################################################
+THEME_WALLPAPERS_SYMLINK = APP_DATA_DIR / "theme_wallpapers"
+GTK_THEME_SYMLINK = (Path.home() / ".themes" / "pawlette").absolute()
 
 ##==> Команды перезагрузки для приложений
 RELOAD_COMMANDS = {

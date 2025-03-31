@@ -2,9 +2,11 @@
 from loguru import logger
 
 import constants as cnst
+from common.utils import create_symlink_dir
 from errors.themes import ThemeNotFound
 from schemas.themes import Theme
 
+from .gtk_applying import GTKThemeApplier
 from .merge_copy import MergeCopyHandler
 
 
@@ -73,3 +75,14 @@ class ThemeManager:
         ##################################
         merge = MergeCopyHandler(theme=theme)
         merge.apply_for_all_configs()
+
+        ##==> Apply GTK theme
+        ##################################
+        GTKThemeApplier.apply(theme)
+
+        ##==> Apply wallpapers
+        ##################################
+        theme.wallpapers_folder.mkdir(parents=True, exist_ok=True)
+        create_symlink_dir(
+            target=theme.wallpapers_folder, link=cnst.THEME_WALLPAPERS_SYMLINK
+        )
