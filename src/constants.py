@@ -30,6 +30,7 @@ SYS_THEMES_FOLDER = Path(f"/usr/share/{APPLICATION_NAME}")
 
 ##==> Application paths
 ##############################################################
+DEFAULT_THEME_LOGO = APP_FOLDER / "assets" / "default-theme-logo.png"
 THEME_WALLPAPERS_SYMLINK = APP_DATA_DIR / "theme_wallpapers"
 GTK_THEME_SYMLINK = (Path.home() / ".themes" / "pawlette").absolute()
 
