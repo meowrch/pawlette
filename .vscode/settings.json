@@ -24,8 +24,8 @@
     },
     // Editor settings
     "ruff.importStrategy": "useBundled",
-    "ruff.lint.args": [
-        "--ignore=F401"
+    "ruff.lint.ignore": [
+        "F401"
     ],
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnPaste": true,
@@ -58,7 +58,6 @@
         "yaml": false
     },
     // Explorer settings
-    "explorer.excludeGitIgnore": false,
     "explorer.autoReveal": true,
     "explorer.confirmDelete": false,
     "explorer.confirmDragAndDrop": false,
