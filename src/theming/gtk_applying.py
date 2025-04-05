@@ -146,12 +146,16 @@ class GTKThemeApplier:
             logger.warning(f"GTK theme folder not found: {theme.gtk_folder}")
             return
 
+        gtk_theme_name = "pawlette-" + theme.name
+        gtk_theme_link = cnst.GTK_THEME_SYMLINK_DIR / gtk_theme_name
+
         if not create_symlink_dir(
-            target=theme.gtk_folder.absolute(), link=cnst.GTK_THEME_SYMLINK
+            target=theme.gtk_folder.absolute(),
+            link=gtk_theme_link,
         ):
             return
 
         GTKThemeApplier.apply_gtk_themes(
             gtk_configs=[cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG],
-            gtk_theme_name=cnst.GTK_THEME_SYMLINK.name,
+            gtk_theme_name=gtk_theme_name,
         )

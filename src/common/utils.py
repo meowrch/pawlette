@@ -22,7 +22,7 @@ def create_symlink_dir(target: Path, link: Path) -> bool:
             else:
                 link.unlink()
 
-        link.symlink_to(target, target_is_dir=True)
+        link.symlink_to(target, target_is_directory=True)
         return True
     except OSError as e:
         logger.error(f"Failed to create symlink from {link} to {target}: {e}")
