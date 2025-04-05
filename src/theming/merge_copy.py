@@ -8,6 +8,7 @@ from loguru import logger
 import constants as cnst
 from schemas.themes import Theme
 
+from .backup import BackupSystem
 from .patch_engine import PatchEngine
 
 
@@ -103,6 +104,9 @@ class MergeCopyHandler:
 
     def _smart_copy(self, src: Path, dst: Path):
         """Интеллектуальное копирование с проверкой хэшей"""
+        if dst.exists():
+            BackupSystem.create_backup(dst)
+
         if not dst.exists() or self._files_differ(src, dst):
             shutil.copy2(src, dst)
 
