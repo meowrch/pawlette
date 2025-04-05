@@ -12,7 +12,7 @@ from .patch_engine import PatchEngine
 
 
 class MergeCopyHandler:
-    __slots__ = "theme_name"
+    __slots__ = "theme"
 
     def __init__(self, theme: Theme) -> None:
         self.theme: Theme = theme
