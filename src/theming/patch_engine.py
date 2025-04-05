@@ -26,6 +26,8 @@ class PatchEngine:
         post_content: str | None = None,
     ) -> bool:
         tmp_path = None
+        BackupSystem.create_backup(target_file)
+
         try:
             with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
                 style = FormatManager.get_comment_style(target_file)
@@ -59,10 +61,8 @@ class PatchEngine:
                 tmp.write(new_content.strip())
                 tmp_path = Path(tmp.name)
 
-            BackupSystem.create_backup(target_file)
             shutil.move(str(tmp_path), str(target_file))
             return True
-
         except Exception as e:
             logger.error(f"Failed to patch {target_file}: {str(e)}")
             if tmp_path and tmp_path.exists():
