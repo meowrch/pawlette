@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 from pathlib import Path
 from typing import List
 
@@ -24,6 +25,11 @@ def configure_argparser() -> argparse.ArgumentParser:
 
     # get themes
     subparsers.add_parser("get-themes", help="List all available themes")
+
+    # get themes info
+    subparsers.add_parser(
+        "get-themes-info", help="JSON with all available themes + params"
+    )
 
     # Apply theme
     theme_parser = subparsers.add_parser("set-theme", help="Apply specified theme")
@@ -188,6 +194,9 @@ def main() -> None:
         case "get-themes":
             themes = manager.get_all_themes()
             print("\n".join([i.name for i in themes]))
+        case "get-themes-info":
+            info = manager.get_all_themes_info()
+            print(info)
         case "set-theme":
             if args.theme_name:
                 manager.apply_theme(args.theme_name)
