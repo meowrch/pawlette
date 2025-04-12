@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import json
+
 from loguru import logger
 
 import constants as cnst
@@ -31,6 +33,27 @@ class ThemeManager:
                     themes[p.stem] = Theme(name=p.stem, path=p)
 
         return list(themes.values())
+
+    @staticmethod
+    def get_all_themes_info() -> str:
+        """This method returns JSON with the paths to the theme itself,
+        logo, wallpaper and theme gtk for each theme
+
+        Returns:
+            str: JSON with the params of theme
+        """
+        themes = ThemeManager.get_all_themes()
+        return json.dumps(
+            {
+                i.name: {
+                    "path": str(i.path),
+                    "logo": str(i.theme_logo),
+                    "wallpapers": str(i.wallpapers_folder),
+                    "gtk-folder": str(i.gtk_folder),
+                }
+                for i in themes
+            }
+        )
 
     @staticmethod
     def get_theme(theme_name: str) -> Theme | None:
