@@ -38,11 +38,10 @@ GTK_THEME_SYMLINK_DIR = (Path.home() / ".themes").absolute()
 RELOAD_COMMANDS = {
     "hypr": "hyprctl reload",
     "waybar": "killall -SIGUSR2 waybar",
-    "qt5ct": None,
-    "qt6ct": None,
     "kitty": "killall -SIGUSR1 kitty",
-    "fish": None,
-    "starship": None,
+    "cava": "pkill -USR1 cava",
+    "dunst": "killall -HUP dunst",
+    "tmux": "tmux source ~/.config/tmux/tmux.conf",
 }
 
 ##==> Форматы комментариев для разных расширений
