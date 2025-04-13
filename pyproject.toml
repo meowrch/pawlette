@@ -1,7 +1,7 @@
 [project]
 name = "pawlette"
 version = "0.1.0"
-description = "Utility for changing themes in the meowrch"
+description = "😺 Utility for changing themes in the meowrch"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
