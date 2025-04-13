@@ -6,10 +6,10 @@ from typing import List
 
 from loguru import logger
 
-import constants as cnst
-from common.utils import create_symlink_dir
-from enums.session_type import LinuxSessionType
-from schemas.themes import Theme
+import pawlette.constants as cnst
+from pawlette.common.utils import create_symlink_dir
+from pawlette.enums.session_type import LinuxSessionType
+from pawlette.schemas.themes import Theme
 
 
 class GTKThemeApplier:

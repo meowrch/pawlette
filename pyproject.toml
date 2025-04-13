@@ -1,29 +1,33 @@
 [project]
-name = "pytemplate"
+name = "pawlette"
 version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.11"
-authors = [
-  {name = "<username>", email = "mail@example.com"},
-]
-maintainers = [
-  {name = "<username>", email = "mail@example.com"}
-]
-keywords = ["project-template", "python", "uv"]
+description = "Utility for changing themes in the meowrch"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
+requires-python = ">=3.11"
+authors = [
+  {name = "dimflix", email = "dimflix.official@gmail.com"},
+]
+maintainers = [
+  {name = "dimflix", email = "dimflix.official@gmail.com"},
+]
 dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
 ]
 
 [project.urls]
-Homepage = "https://github.com/<username>/<repository-name>"
-Documentation = "https://github.com/<username>/<repository-name>/wiki"
-Repository = "https://github.com/<username>/<repository-name>.git"
-"Bug Tracker" = "https://github.com/<username>/<repository-name>/issues"
-Changelog = "https://github.com/<username>/<repository-name>/blob/master/CHANGELOG.md"
+Homepage = "https://github.com/meowrch/pawlette"
+Documentation = "https://github.com/meowrch/pawlette/wiki"
+Repository = "https://github.com/meowrch/pawlette.git"
+"Bug Tracker" = "https://github.com/meowrch/pawlette/issues"
+Changelog = "https://github.com/meowrch/pawlette/blob/master/CHANGELOG.md"
+
+[project.scripts]
+pawlette = "pawlette.__main__:main"
+generate_default_config = "mewline.__main__:generate_default_config"
+create_keybindings = "mewline.__main__:create_keybindings"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
@@ -35,6 +39,9 @@ dev = [
     "pytest>=8.3.4",
     "ruff>=0.9.6",
 ]
+
+[tool.uv]
+package=true
 
 [tool.bandit]
 exclude_dirs = ["tests", "docs"]

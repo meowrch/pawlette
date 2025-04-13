@@ -3,8 +3,8 @@ from pathlib import Path
 
 from loguru import logger
 
-import constants as cnst
-from schemas.config_struct import Config
+import pawlette.constants as cnst
+from pawlette.schemas.config_struct import Config
 
 
 def generate_default_config():

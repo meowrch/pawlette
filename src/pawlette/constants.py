@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-from enums.session_type import LinuxSessionType
+from pawlette.enums.session_type import LinuxSessionType
 
 ##==> BASE
 ##############################################################

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from config import cfg
+from pawlette.config import cfg
 
 from .backup import BackupSystem
 
