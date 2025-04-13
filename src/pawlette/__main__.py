@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-import json
 from pathlib import Path
 from typing import List
 
 from loguru import logger
 
-import constants as cnst
-from config import generate_default_config
-from theming.backup import BackupSystem
-from theming.manager import ThemeManager
+import pawlette.constants as cnst
+from pawlette.config import generate_default_config
+from pawlette.theming.backup import BackupSystem
+from pawlette.theming.manager import ThemeManager
 
 
 def configure_argparser() -> argparse.ArgumentParser:

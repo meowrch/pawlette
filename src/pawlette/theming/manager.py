@@ -3,10 +3,10 @@ import json
 
 from loguru import logger
 
-import constants as cnst
-from common.utils import create_symlink_dir
-from errors.themes import ThemeNotFound
-from schemas.themes import Theme
+import pawlette.constants as cnst
+from pawlette.common.utils import create_symlink_dir
+from pawlette.errors.themes import ThemeNotFound
+from pawlette.schemas.themes import Theme
 
 from .gtk_applying import GTKThemeApplier
 from .merge_copy import MergeCopyHandler

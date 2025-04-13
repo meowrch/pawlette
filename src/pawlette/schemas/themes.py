@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 
-from constants import DEFAULT_THEME_LOGO
-from errors.themes import ThemeNotFound
+from pawlette.constants import DEFAULT_THEME_LOGO
+from pawlette.errors.themes import ThemeNotFound
 
 
 class Theme(BaseModel):

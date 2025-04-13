@@ -12,8 +12,8 @@ from typing import Tuple
 
 from loguru import logger
 
-import constants as cnst
-from config import cfg
+import pawlette.constants as cnst
+from pawlette.config import cfg
 
 
 class BackupSystem:

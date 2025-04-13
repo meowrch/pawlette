@@ -5,8 +5,8 @@ from pathlib import Path
 
 from loguru import logger
 
-import constants as cnst
-from schemas.themes import Theme
+import pawlette.constants as cnst
+from pawlette.schemas.themes import Theme
 
 from .backup import BackupSystem
 from .patch_engine import PatchEngine
