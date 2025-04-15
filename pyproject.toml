@@ -15,6 +15,7 @@ maintainers = [
 dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
+    "systemd>=0.17.1",
 ]
 
 [project.urls]
@@ -26,8 +27,6 @@ Changelog = "https://github.com/meowrch/pawlette/blob/master/CHANGELOG.md"
 
 [project.scripts]
 pawlette = "pawlette.__main__:main"
-generate_default_config = "mewline.__main__:generate_default_config"
-create_keybindings = "mewline.__main__:create_keybindings"
 
 [tool.pytest.ini_options]
 pythonpath = "src"

@@ -6,9 +6,14 @@ from typing import List
 from loguru import logger
 
 import pawlette.constants as cnst
+from pawlette.common.setup_loguru import setup_loguru
 from pawlette.config import generate_default_config
 from pawlette.theming.backup import BackupSystem
 from pawlette.theming.manager import ThemeManager
+
+##==> Настраиваем loguru
+################################
+setup_loguru()
 
 
 def configure_argparser() -> argparse.ArgumentParser:
