@@ -13,6 +13,7 @@ class Theme(BaseModel):
     path: Path
     theme_logo: Path = Field(default=None, exclude=True)
     wallpapers_folder: Path = Field(default=None, exclude=True)
+    icons_folder: Path = Field(default=None, exclude=True)
     gtk_folder: Path = Field(default=None, exclude=True)
 
     class Config:
@@ -21,6 +22,7 @@ class Theme(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+        self.icons_folder = self.path / "global" / "icons"
         self.gtk_folder = self.path / "global" / "gtk-theme"
         self.wallpapers_folder = self.path / "global" / "wallpapers"
 

@@ -8,8 +8,9 @@ from pawlette.common.utils import create_symlink_dir
 from pawlette.errors.themes import ThemeNotFound
 from pawlette.schemas.themes import Theme
 
-from .gtk_applying import GTKThemeApplier
 from .merge_copy import MergeCopyHandler
+from .system_theme_appliers import GTKThemeApplier
+from .system_theme_appliers import IconThemeApplier
 
 
 class ThemeManager:
@@ -101,7 +102,11 @@ class ThemeManager:
 
         ##==> Apply GTK theme
         ##################################
-        GTKThemeApplier.apply(theme)
+        GTKThemeApplier().apply(theme)
+
+        ##==> Apply Icon theme
+        ##################################
+        IconThemeApplier().apply(theme)
 
         ##==> Apply wallpapers
         ##################################

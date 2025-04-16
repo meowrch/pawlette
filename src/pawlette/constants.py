@@ -33,6 +33,7 @@ SYS_THEMES_FOLDER = Path(f"/usr/share/{APPLICATION_NAME}")
 DEFAULT_THEME_LOGO = APP_FOLDER / "assets" / "default-theme-logo.png"
 THEME_WALLPAPERS_SYMLINK = APP_DATA_DIR / "theme_wallpapers"
 GTK_THEME_SYMLINK_DIR = (Path.home() / ".themes").absolute()
+ICON_THEME_SYMLINK_DIR = (Path.home() / ".icons").absolute()
 
 ##==> Команды перезагрузки для приложений
 RELOAD_COMMANDS = {
