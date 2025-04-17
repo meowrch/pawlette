@@ -37,12 +37,12 @@ ICON_THEME_SYMLINK_DIR = (Path.home() / ".icons").absolute()
 
 ##==> Команды перезагрузки для приложений
 RELOAD_COMMANDS = {
-    "hypr": "hyprctl reload",
-    "waybar": "killall -SIGUSR2 waybar",
-    "kitty": "killall -SIGUSR1 kitty",
-    "cava": "pkill -USR1 cava",
-    "dunst": "killall -HUP dunst",
-    "tmux": "tmux source ~/.config/tmux/tmux.conf",
+    "hypr": "command -v hyprctl >/dev/null && hyprctl reload",
+    "waybar": "pgrep waybar >/dev/null && killall -SIGUSR2 waybar",
+    "kitty": "pgrep kitty >/dev/null && killall -SIGUSR1 kitty",
+    "cava": "pgrep cava >/dev/null && pkill -USR1 cava",
+    "dunst": "pgrep dunst >/dev/null && killall -HUP dunst",
+    "tmux": "command -v tmux >/dev/null && tmux source ~/.config/tmux/tmux.conf",
 }
 
 ##==> Форматы комментариев для разных расширений
