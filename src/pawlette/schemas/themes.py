@@ -22,11 +22,11 @@ class Theme(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        self.icons_folder = self.path / "global" / "icons"
-        self.gtk_folder = self.path / "global" / "gtk-theme"
-        self.wallpapers_folder = self.path / "global" / "wallpapers"
-
+        self.icons_folder = self.path / "icons"
+        self.gtk_folder = self.path / "gtk-theme"
+        self.wallpapers_folder = self.path / "wallpapers"
         self.theme_logo = self.path / "logo.png"
+
         if not self.theme_logo.exists():
             self.theme_logo = DEFAULT_THEME_LOGO
 
