@@ -60,6 +60,50 @@ class BaseThemeApplier(ABC):
             return False
 
     @staticmethod
+    def _update_qt_config(config_path: Path, theme_name: str) -> bool:
+        """
+        Updates a QT config file with the specified icon theme name.
+
+        Args:
+            config_path: Path to the QT config file (qt5ct.conf or qt6ct.conf)
+            theme_name: Name of the icon theme to apply
+
+        Returns:
+            bool: True if the file was updated, False otherwise
+        """
+        if not config_path.exists():
+            logger.warning(f"QT config file doesn't exist: {config_path}")
+            return False
+
+        try:
+            content = config_path.read_text()
+            theme_entry = f"icon_theme={theme_name}"
+
+            # Если строка уже существует с правильным значением
+            if theme_entry in content:
+                return False
+
+            if "[Appearance]" in content:
+                # Если строка icon_theme уже существует
+                if "icon_theme=" in content:
+                    new_content = re.sub(r"icon_theme=.*", theme_entry, content)
+                    config_path.write_text(new_content)
+                else:  # Если её не было
+                    new_content = content.replace(
+                        "[Appearance]", f"[Appearance]\n{theme_entry}", 1
+                    )
+                    config_path.write_text(new_content)
+            else:
+                # Если секции Appearance нет
+                with config_path.open("a") as f:
+                    f.write(f"\n[Appearance]\n{theme_entry}\n")
+
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update QT config at {config_path}: {e}")
+            return False
+
+    @staticmethod
     def _apply_wayland_theme(theme_name: str, gsettings_key: str) -> bool:
         """Apply theme for Wayland sessions using gsettings."""
         if not BaseThemeApplier._is_command_available("gsettings"):
@@ -161,7 +205,7 @@ class BaseThemeApplier(ABC):
         elif cnst.SESSION_TYPE == LinuxSessionType.X11:
             self._apply_x11_theme(theme_name, self.get_xsettings_key())
 
-    def apply(self, theme: Theme) -> None:
+    def _apply(self, theme: Theme) -> None:
         """
         Applies the theme by creating symlinks and updating configs.
 
@@ -206,6 +250,9 @@ class GTKThemeApplier(BaseThemeApplier):
     def get_symlink_dir(self) -> Path:
         return cnst.GTK_THEME_SYMLINK_DIR
 
+    def apply(self, theme: Theme) -> None:
+        self._apply(theme)
+
 
 class IconThemeApplier(BaseThemeApplier):
     """A class to handle Icon theme application on Linux systems."""
@@ -224,3 +271,12 @@ class IconThemeApplier(BaseThemeApplier):
 
     def get_symlink_dir(self) -> Path:
         return cnst.ICON_THEME_SYMLINK_DIR
+
+    def apply(self, theme: Theme) -> None:
+        self._apply(theme)
+
+        # Обновляем конфиги QT
+        qt5_config = Path.home() / ".config" / "qt5ct" / "qt5ct.conf"
+        qt6_config = Path.home() / ".config" / "qt6ct" / "qt6ct.conf"
+        self._update_qt_config(qt5_config, theme.name)
+        self._update_qt_config(qt6_config, theme.name)
