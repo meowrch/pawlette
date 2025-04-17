@@ -60,7 +60,7 @@ class MergeCopyHandler:
                 # Обработка поддиректорий
                 dest_path.mkdir(exist_ok=True)
                 self._merge_and_patch(item, dest_path)
-            elif item.suffix == ".pre_pawlette":
+            elif item.suffix == ".prepaw":
                 with open(item) as f:
                     content = f.read()
 
@@ -73,7 +73,7 @@ class MergeCopyHandler:
                         "pre": content,
                         "post": None,
                     }
-            elif item.suffix == ".post_pawlette":
+            elif item.suffix == ".postpaw":
                 with open(item) as f:
                     content = f.read()
 
