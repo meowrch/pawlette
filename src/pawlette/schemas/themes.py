@@ -39,3 +39,10 @@ class Theme(BaseModel):
             raise ThemeNotFound(v.name)
 
         return v
+
+
+class InstalledThemeInfo(BaseModel):
+    name: str
+    version: str
+    source_url: str
+    installed_path: Path

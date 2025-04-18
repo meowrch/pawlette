@@ -8,12 +8,18 @@ from pawlette.common.utils import create_symlink_dir
 from pawlette.errors.themes import ThemeNotFound
 from pawlette.schemas.themes import Theme
 
+from .installer import Installer
 from .merge_copy import MergeCopyHandler
 from .system_theme_appliers import GTKThemeApplier
 from .system_theme_appliers import IconThemeApplier
 
 
 class ThemeManager:
+    installer: Installer
+
+    def __init__(self) -> None:
+        self.installer = Installer()
+
     @staticmethod
     def get_all_themes() -> list[Theme]:
         """Gives all found themes in the system and local directory.
