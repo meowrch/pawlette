@@ -21,10 +21,11 @@ XDG_STATE_HOME = Path(os.getenv("XDG_STATE_HOME", Path.home() / ".local" / "stat
 APP_CONFIG_DIR = XDG_CONFIG_HOME / APPLICATION_NAME
 APP_DATA_DIR = XDG_DATA_HOME / APPLICATION_NAME
 APP_CACHE_DIR = XDG_CACHE_HOME / APPLICATION_NAME
-APP_BACKUP_DIR = XDG_STATE_HOME / APPLICATION_NAME / "backups"
+APP_STATE_DIR = XDG_STATE_HOME / APPLICATION_NAME
 
+APP_BACKUP_DIR = APP_STATE_DIR / "backups"
 APP_CONFIG_FILE = APP_CONFIG_DIR / (APPLICATION_NAME + ".json")
-
+VERSIONS_FILE = APP_STATE_DIR / "installed_themes.json"
 THEMES_FOLDER = APP_DATA_DIR / "themes"
 SYS_THEMES_FOLDER = Path(f"/usr/share/{APPLICATION_NAME}")
 
@@ -34,6 +35,12 @@ DEFAULT_THEME_LOGO = APP_FOLDER / "assets" / "default-theme-logo.png"
 THEME_WALLPAPERS_SYMLINK = APP_DATA_DIR / "theme_wallpapers"
 GTK_THEME_SYMLINK_DIR = (Path.home() / ".themes").absolute()
 ICON_THEME_SYMLINK_DIR = (Path.home() / ".icons").absolute()
+
+##==> Ссылка на список официальных тем
+THEMES_LIST_URL = (
+    "https://raw.githubusercontent.com/meowrch/meowrch-themes/main/themes.list"
+)
+
 
 ##==> Команды перезагрузки для приложений
 RELOAD_COMMANDS = {

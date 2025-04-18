@@ -28,16 +28,48 @@ def configure_argparser() -> argparse.ArgumentParser:
     subparsers.add_parser("generate-config", help="Generate default configuration")
 
     # get themes
-    subparsers.add_parser("get-themes", help="List all available themes")
+    subparsers.add_parser("get-themes", help="List all installed themes")
+
+    # get available themes
+    subparsers.add_parser(
+        "get-available-themes",
+        help="JSON with all available themes with url for download",
+    )
 
     # get themes info
     subparsers.add_parser(
-        "get-themes-info", help="JSON with all available themes + params"
+        "get-themes-info", help="JSON with all installed themes + params"
+    )
+
+    # Install theme
+    install_theme_parser = subparsers.add_parser(
+        "install-theme", help="Install theme from official repository pawlette-themes"
+    )
+    install_theme_parser.add_argument(
+        "theme_name", type=str, help="Name of theme to install"
+    )
+
+    # Update theme
+    update_theme_parser = subparsers.add_parser(
+        "update-theme", help="Update theme from official repository pawlette-themes"
+    )
+    update_theme_parser.add_argument(
+        "theme_name", type=str, help="Name of theme to update"
+    )
+
+    # Update all themes
+    subparsers.add_parser(
+        "update-all-themes",
+        help="Update all themes from official repository pawlette-themes",
     )
 
     # Apply theme
-    theme_parser = subparsers.add_parser("set-theme", help="Apply specified theme")
-    theme_parser.add_argument("theme_name", type=str, help="Name of theme to apply")
+    apply_theme_parser = subparsers.add_parser(
+        "set-theme", help="Apply specified theme"
+    )
+    apply_theme_parser.add_argument(
+        "theme_name", type=str, help="Name of theme to apply"
+    )
 
     # Backup commands
     backup_parser = subparsers.add_parser("backup", help="Backup operations")
@@ -118,7 +150,7 @@ def print_backups(backups: List[dict], original_path: Path) -> None:
         print("-" * 80)
 
 
-def backup_command(args, manager: ThemeManager) -> None:
+def backup_command(args) -> None:
     """Handle backup subcommands"""
     match args.backup_command:
         case "list":
@@ -198,9 +230,19 @@ def main() -> None:
         case "get-themes":
             themes = manager.get_all_themes()
             print("\n".join([i.name for i in themes]))
+        case "get-available-themes":
+            print(manager.installer.fetch_available_themes())
         case "get-themes-info":
             info = manager.get_all_themes_info()
             print(info)
+        case "install-theme":
+            if args.theme_name:
+                manager.installer.install_theme(args.theme_name)
+        case "update-theme":
+            if args.theme_name:
+                manager.installer.update_theme(args.theme_name)
+        case "update-all-themes":
+            manager.installer.update_all_themes()
         case "set-theme":
             if args.theme_name:
                 manager.apply_theme(args.theme_name)

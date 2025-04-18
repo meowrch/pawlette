@@ -16,6 +16,7 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
     "systemd>=0.17.1",
+    "tqdm>=4.67.1",
 ]
 
 [project.urls]
