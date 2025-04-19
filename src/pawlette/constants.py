@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from pawlette.enums.session_type import LinuxSessionType
+from pawlette.schemas.commands import CommandInfo
 
 ##==> BASE
 ##############################################################
@@ -44,12 +45,14 @@ THEMES_LIST_URL = (
 
 ##==> Команды перезагрузки для приложений
 RELOAD_COMMANDS = {
-    "hypr": "command -v hyprctl >/dev/null && hyprctl reload",
-    "waybar": "pgrep waybar >/dev/null && killall -SIGUSR2 waybar",
-    "kitty": "pgrep kitty >/dev/null && killall -SIGUSR1 kitty",
-    "cava": "pgrep cava >/dev/null && pkill -USR1 cava",
-    "dunst": "pgrep dunst >/dev/null && killall -HUP dunst",
-    "tmux": "command -v tmux >/dev/null && tmux source ~/.config/tmux/tmux.conf",
+    "hypr": CommandInfo(command="hyprctl reload", check_command_exists="hyprctl"),
+    "waybar": CommandInfo(command="killall -SIGUSR2 waybar", check_process="waybar"),
+    "kitty": CommandInfo(command="killall -SIGUSR1 kitty", check_process="kitty"),
+    "cava": CommandInfo(command="killall -USR1 cava", check_process="cava"),
+    "dunst": CommandInfo(command="killall -HUP dunst", check_process="dunst"),
+    "tmux": CommandInfo(
+        command="tmux source ~/.config/tmux/tmux.conf", check_process="tmux"
+    ),
 }
 
 ##==> Форматы комментариев для разных расширений
