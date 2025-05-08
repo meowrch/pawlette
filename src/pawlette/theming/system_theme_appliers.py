@@ -1,10 +1,9 @@
 import re
 import shutil
 import subprocess
-from abc import ABC
-from abc import abstractmethod
 from pathlib import Path
 from typing import List
+from typing import Optional
 
 from loguru import logger
 
@@ -14,41 +13,48 @@ from pawlette.enums.session_type import LinuxSessionType
 from pawlette.schemas.themes import Theme
 
 
-class BaseThemeApplier(ABC):
-    """Base class for theme appliers with common functionality."""
+class BaseThemeApplier:
+    """Базовый класс для применения тем с параметризацией"""
 
-    @staticmethod
-    def _is_command_available(command: str) -> bool:
-        """Check if a command is available in the system."""
+    def __init__(
+        self,
+        config_key: str,
+        gsettings_key: str,
+        xsettings_key: str,
+        symlink_dir: Path,
+        theme_folder_attr: str,
+        qt_configs: Optional[List[Path]] = None,
+    ):
+        self.config_key = config_key
+        self.gsettings_key = gsettings_key
+        self.xsettings_key = xsettings_key
+        self.symlink_dir = symlink_dir
+        self.theme_folder_attr = theme_folder_attr
+        self.qt_configs = qt_configs or []
+
+    def _is_command_available(self, command: str) -> bool:
+        """Проверяет доступность команды в системе"""
         return shutil.which(command) is not None
 
-    @staticmethod
-    def _update_gtk_config(config_path: Path, config_key: str, theme_name: str) -> bool:
+    def _update_gtk_config(self, config_path: Path, theme_name: str) -> bool:
         """
-        Updates a GTK config file with the specified theme name.
-
-        Args:
-            config_path: Path to the GTK config file
-            config_key: The config key to update (e.g. "gtk-theme-name")
-            theme_name: Name of the theme to apply
-
-        Returns:
-            bool: True if the file was updated, False otherwise
+        Обновляет конфиг GTK с указанным именем темы.
+        Возвращает True если файл был изменен.
         """
         if not config_path.parent.exists():
-            logger.warning(f"Config directory doesn't exist: {config_path.parent}")
+            logger.warning(f"Директория конфига не существует: {config_path.parent}")
             return False
 
         try:
             config_path.touch(exist_ok=True)
             content = config_path.read_text()
 
-            theme_entry = f"{config_key}={theme_name}"
+            theme_entry = f"{self.config_key}={theme_name}"
             if theme_entry in content:
                 return False
 
-            if f"{config_key}=" in content:
-                new_content = re.sub(rf"{config_key}=.*", theme_entry, content)
+            if f"{self.config_key}=" in content:
+                new_content = re.sub(rf"{self.config_key}=.*", theme_entry, content)
                 config_path.write_text(new_content)
             else:
                 with config_path.open("a") as f:
@@ -56,58 +62,45 @@ class BaseThemeApplier(ABC):
 
             return True
         except Exception as e:
-            logger.error(f"Failed to update GTK config at {config_path}: {e}")
+            logger.error(f"Ошибка обновления GTK конфига {config_path}: {e}")
             return False
 
-    @staticmethod
-    def _update_qt_config(config_path: Path, theme_name: str) -> bool:
+    def _update_qt_config(self, config_path: Path, theme_name: str) -> bool:
         """
-        Updates a QT config file with the specified icon theme name.
-
-        Args:
-            config_path: Path to the QT config file (qt5ct.conf or qt6ct.conf)
-            theme_name: Name of the icon theme to apply
-
-        Returns:
-            bool: True if the file was updated, False otherwise
+        Обновляет конфиг QT с указанным именем темы.
+        Возвращает True если файл был изменен.
         """
         if not config_path.exists():
-            logger.warning(f"QT config file doesn't exist: {config_path}")
+            logger.warning(f"QT конфиг не существует: {config_path}")
             return False
 
         try:
             content = config_path.read_text()
             theme_entry = f"icon_theme={theme_name}"
 
-            # Если строка уже существует с правильным значением
             if theme_entry in content:
                 return False
 
             if "[Appearance]" in content:
-                # Если строка icon_theme уже существует
                 if "icon_theme=" in content:
                     new_content = re.sub(r"icon_theme=.*", theme_entry, content)
-                    config_path.write_text(new_content)
-                else:  # Если её не было
+                else:
                     new_content = content.replace(
                         "[Appearance]", f"[Appearance]\n{theme_entry}", 1
                     )
-                    config_path.write_text(new_content)
             else:
-                # Если секции Appearance нет
-                with config_path.open("a") as f:
-                    f.write(f"\n[Appearance]\n{theme_entry}\n")
+                new_content = content + f"\n[Appearance]\n{theme_entry}\n"
 
+            config_path.write_text(new_content)
             return True
         except Exception as e:
-            logger.error(f"Failed to update QT config at {config_path}: {e}")
+            logger.error(f"Ошибка обновления QT конфига {config_path}: {e}")
             return False
 
-    @staticmethod
-    def _apply_wayland_theme(theme_name: str, gsettings_key: str) -> bool:
-        """Apply theme for Wayland sessions using gsettings."""
-        if not BaseThemeApplier._is_command_available("gsettings"):
-            logger.warning("gsettings command not found - cannot apply theme")
+    def _apply_wayland_theme(self, theme_name: str) -> bool:
+        """Применяет тему для Wayland через gsettings"""
+        if not self._is_command_available("gsettings"):
+            logger.warning("gsettings не найден")
             return False
 
         try:
@@ -116,7 +109,7 @@ class BaseThemeApplier(ABC):
                     "gsettings",
                     "set",
                     "org.gnome.desktop.interface",
-                    gsettings_key,
+                    self.gsettings_key,
                     theme_name,
                 ],
                 check=True,
@@ -125,158 +118,143 @@ class BaseThemeApplier(ABC):
             )
             return True
         except subprocess.CalledProcessError as e:
-            logger.error(f"gsettings failed: {e.stderr}")
+            logger.error(f"Ошибка gsettings: {e.stderr}")
             return False
 
-    @staticmethod
-    def _apply_x11_theme(theme_name: str, xsettings_key: str) -> bool:
-        """Apply theme for X11 sessions using xsettingsd."""
-        if not BaseThemeApplier._is_command_available("xsettingsd"):
-            logger.warning("xsettingsd not found - cannot apply theme")
+    def _apply_x11_theme(self, theme_name: str) -> bool:
+        """Применяет тему для X11 через xsettingsd"""
+        if not self._is_command_available("xsettingsd"):
+            logger.warning("xsettingsd не найден")
             return False
 
         if not cnst.XSETTINGSD_CONFIG.exists():
-            logger.warning(f"xsettingsd config not found at {cnst.XSETTINGSD_CONFIG}")
+            logger.warning(f"Конфиг xsettingsd не найден: {cnst.XSETTINGSD_CONFIG}")
             return False
 
         try:
             content = cnst.XSETTINGSD_CONFIG.read_text()
-            theme_line = f'{xsettings_key} "{theme_name}"'
+            theme_line = f'{self.xsettings_key} "{theme_name}"'
 
             if theme_line in content:
                 return True
 
-            if xsettings_key in content:
-                new_content = re.sub(rf"{xsettings_key} .*", theme_line, content)
-                cnst.XSETTINGSD_CONFIG.write_text(new_content)
+            if self.xsettings_key in content:
+                new_content = re.sub(rf"{self.xsettings_key} .*", theme_line, content)
             else:
-                with cnst.XSETTINGSD_CONFIG.open("a") as f:
-                    f.write(f"{theme_line}\n")
+                new_content = content + f"\n{theme_line}\n"
 
-            subprocess.run(
-                ["killall", "-HUP", "xsettingsd"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            cnst.XSETTINGSD_CONFIG.write_text(new_content)
+            subprocess.run(["killall", "-HUP", "xsettingsd"], check=True)
             return True
         except Exception as e:
-            logger.error(f"Failed to apply X11 theme: {e}")
+            logger.error(f"Ошибка применения X11 темы: {e}")
             return False
 
-    @abstractmethod
-    def get_config_key(self) -> str:
-        """Returns the config key used in GTK config files."""
-        pass
+    def _apply_theme_configs(self, theme_name: str) -> None:
+        """Обновляет все связанные конфиги"""
+        # GTK конфиги
+        for config in [cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG]:
+            self._update_gtk_config(config, theme_name)
 
-    @abstractmethod
-    def get_gsettings_key(self) -> str:
-        """Returns the key used in gsettings."""
-        pass
+        # QT конфиги
+        for config in self.qt_configs:
+            self._update_qt_config(config, theme_name)
 
-    @abstractmethod
-    def get_xsettings_key(self) -> str:
-        """Returns the key used in xsettingsd."""
-        pass
-
-    @abstractmethod
-    def get_theme_folder(self, theme: Theme) -> Path:
-        """Returns the theme folder path from the theme object."""
-        pass
-
-    @abstractmethod
-    def get_symlink_dir(self) -> Path:
-        """Returns the symlink directory for this theme type."""
-        pass
-
-    def apply_theme(self, gtk_configs: List[Path], theme_name: str) -> None:
-        """
-        Applies the theme to all specified config files and live session.
-
-        Args:
-            gtk_configs: List of GTK config files to update
-            theme_name: Name of the theme to apply
-        """
-        for config in gtk_configs:
-            self._update_gtk_config(config, self.get_config_key(), theme_name)
-
+        # Live session
         if cnst.SESSION_TYPE == LinuxSessionType.WAYLAND:
-            self._apply_wayland_theme(theme_name, self.get_gsettings_key())
+            self._apply_wayland_theme(theme_name)
         elif cnst.SESSION_TYPE == LinuxSessionType.X11:
-            self._apply_x11_theme(theme_name, self.get_xsettings_key())
+            self._apply_x11_theme(theme_name)
 
-    def _apply(self, theme: Theme) -> None:
-        """
-        Applies the theme by creating symlinks and updating configs.
-
-        Args:
-            theme: Theme object containing theme information
-        """
-        theme_folder = self.get_theme_folder(theme)
+    def _setup_symlink(self, theme: Theme) -> Optional[Path]:
+        """Создает симлинк темы и возвращает путь к теме"""
+        theme_folder = getattr(theme, self.theme_folder_attr)
         if not theme_folder.exists():
-            logger.warning(f"Theme folder not found: {theme_folder}")
-            return
+            logger.warning(f"Папка темы не найдена: {theme_folder}")
+            return None
 
-        theme_name = "pawlette-" + theme.name
-        theme_link = self.get_symlink_dir() / theme_name
+        theme_name = f"pawlette-{theme.name}"
+        theme_link = self.symlink_dir / theme_name
 
-        if not create_symlink_dir(
-            target=theme_folder.absolute(),
-            link=theme_link,
-        ):
-            return
+        if create_symlink_dir(theme_folder.absolute(), theme_link):
+            return theme_folder
+        return None
 
-        self.apply_theme(
-            gtk_configs=[cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG],
-            theme_name=theme_name,
-        )
+    def apply(self, theme: Theme) -> None:
+        """Основной метод применения темы"""
+        if self._setup_symlink(theme):
+            theme_name = f"pawlette-{theme.name}"
+            self._apply_theme_configs(theme_name)
 
 
 class GTKThemeApplier(BaseThemeApplier):
-    """A class to handle GTK theme application on Linux systems."""
+    """Обработчик GTK тем с симлинками для GTK4"""
 
-    def get_config_key(self) -> str:
-        return "gtk-theme-name"
+    def __init__(self):
+        super().__init__(
+            config_key="gtk-theme-name",
+            gsettings_key="gtk-theme",
+            xsettings_key="Net/ThemeName",
+            symlink_dir=cnst.GTK_THEME_SYMLINK_DIR,
+            theme_folder_attr="gtk_folder",
+        )
 
-    def get_gsettings_key(self) -> str:
-        return "gtk-theme"
+    def _link_gtk4_styles(self, theme_folder: Path) -> None:
+        """Создает симлинки для GTK4 ассетов и стилей"""
+        gtk4_dir = theme_folder / "gtk-4.0"
+        if not gtk4_dir.exists():
+            return
 
-    def get_xsettings_key(self) -> str:
-        return "Net/ThemeName"
+        target_dir = Path.home() / ".config" / "gtk-4.0"
+        target_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_theme_folder(self, theme: Theme) -> Path:
-        return theme.gtk_folder
+        for css_file in ["gtk.css", "gtk-dark.css"]:
+            source = gtk4_dir / css_file
+            if not source.exists():
+                continue
 
-    def get_symlink_dir(self) -> Path:
-        return cnst.GTK_THEME_SYMLINK_DIR
+            dest = target_dir / css_file
+            self._create_symlink(source, dest)
+
+        assets_source = gtk4_dir / "assets"
+        if assets_source.exists() and assets_source.is_dir():
+            assets_dest = target_dir / "assets"
+            self._create_symlink(assets_source, assets_dest, is_directory=True)
+
+    def _create_symlink(
+        self, source: Path, dest: Path, is_directory: bool = False
+    ) -> None:
+        """Утилита для создания символических ссылок"""
+        try:
+            if dest.exists() or dest.is_symlink():
+                dest.unlink()
+
+            dest.symlink_to(source, target_is_directory=is_directory)
+        except Exception as e:
+            logger.error(f"Ошибка создания ссылки {dest.name}: {e}")
 
     def apply(self, theme: Theme) -> None:
-        self._apply(theme)
+        """Переопределенный метод с обработкой GTK4"""
+        theme_folder = self._setup_symlink(theme)
+
+        if theme_folder:
+            self._link_gtk4_styles(theme_folder)
+            theme_name = f"pawlette-{theme.name}"
+            self._apply_theme_configs(theme_name)
 
 
 class IconThemeApplier(BaseThemeApplier):
-    """A class to handle Icon theme application on Linux systems."""
+    """Обработчик иконок с обновлением QT конфигов"""
 
-    def get_config_key(self) -> str:
-        return "gtk-icon-theme-name"
-
-    def get_gsettings_key(self) -> str:
-        return "icon-theme"
-
-    def get_xsettings_key(self) -> str:
-        return "Net/IconThemeName"
-
-    def get_theme_folder(self, theme: Theme) -> Path:
-        return theme.icons_folder
-
-    def get_symlink_dir(self) -> Path:
-        return cnst.ICON_THEME_SYMLINK_DIR
-
-    def apply(self, theme: Theme) -> None:
-        self._apply(theme)
-
-        # Обновляем конфиги QT
-        qt5_config = Path.home() / ".config" / "qt5ct" / "qt5ct.conf"
-        qt6_config = Path.home() / ".config" / "qt6ct" / "qt6ct.conf"
-        self._update_qt_config(qt5_config, theme.name)
-        self._update_qt_config(qt6_config, theme.name)
+    def __init__(self):
+        super().__init__(
+            config_key="gtk-icon-theme-name",
+            gsettings_key="icon-theme",
+            xsettings_key="Net/IconThemeName",
+            symlink_dir=cnst.ICON_THEME_SYMLINK_DIR,
+            theme_folder_attr="icons_folder",
+            qt_configs=[
+                Path.home() / ".config" / "qt5ct" / "qt5ct.conf",
+                Path.home() / ".config" / "qt6ct" / "qt6ct.conf",
+            ],
+        )
