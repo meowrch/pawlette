@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import re
 import tarfile
 import tempfile
 from pathlib import Path
@@ -80,11 +81,8 @@ class Installer:
     def _extract_version_from_filename(self, filename: str) -> str:
         """Извлекает версию из имени файла темы"""
         # Ожидаемый формат: theme-name-vX.Y.Z.tar.gz
-        parts = filename.split("-")
-        for part in reversed(parts):
-            if part.startswith("v") and part[1:].replace(".", "").isdigit():
-                return part[1:]
-        return "1.0"  # Версия по умолчанию
+        matches = re.findall(r"v(\d+(?:\.\d+)*)(?:[-_.]|$)", filename)
+        return matches[-1] if matches else "1.0"
 
     def install_theme(self, theme_name: str):
         """Устанавливает указанную тему"""
