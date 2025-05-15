@@ -121,7 +121,7 @@ class Installer:
                         unit_scale=True,
                         unit_divisor=1024,
                         desc=f"Downloading {theme_name}",
-                        ncols=80,  # Ширина прогресс-бара
+                        ncols=80,
                     ) as pbar:
                         for chunk in r.iter_content(chunk_size=8192):
                             tmp_file.write(chunk)
@@ -131,18 +131,51 @@ class Installer:
 
             # Целевая директория для темы
             theme_target_dir = cnst.THEMES_FOLDER / theme_name
-            theme_target_dir.mkdir(exist_ok=True)
+            theme_target_dir.mkdir(exist_ok=True, parents=True)
 
-            # Распаковка архива с прогресс-баром
+            # Распаковка архива с обработкой структуры
             print(f"Extracting {theme_name}...")
             with tarfile.open(tmp_path, "r:gz") as tar:
-                # Получаем список файлов для прогресс-бара
                 members = tar.getmembers()
+
+                # Определяем общую директорию в архиве
+                if members:
+                    members_names = [m.name for m in members]
+                    common_dir = os.path.commonpath(members_names)
+
+                    # Проверяем нужно ли обрезать путь
+                    strip_length = (
+                        len(common_dir) + 1
+                        if all(name.startswith(common_dir) for name in members_names)
+                        else 0
+                    )
+                else:
+                    strip_length = 0
+
+                # Фильтруем и корректируем пути
+                extracted_members = []
+                for member in members:
+                    if strip_length:
+                        new_name = member.name[strip_length:]
+                        if not new_name:  # Пропускаем корневую директорию
+                            continue
+                        member.name = new_name
+
+                    # Пропускаем элементы вне целевой директории
+                    target_path = os.path.join(theme_target_dir, member.name)
+                    if not os.path.abspath(target_path).startswith(
+                        os.path.abspath(theme_target_dir)
+                    ):
+                        continue
+
+                    extracted_members.append(member)
+
+                # Извлекаем с прогресс-баром
                 with tqdm(
-                    total=len(members), desc="Extracting files", ncols=80
+                    total=len(extracted_members), desc="Extracting files", ncols=80
                 ) as pbar:
-                    for member in members:
-                        tar.extract(member, path=theme_target_dir)
+                    for member in extracted_members:
+                        tar.extract(member, theme_target_dir)
                         pbar.update(1)
 
             # Обновляем информацию об установленной теме
@@ -158,8 +191,8 @@ class Installer:
             )
         except Exception as e:
             logger.error(f"Error installing theme: {e}")
+            raise
         finally:
-            # Удаление временного файла
             if "tmp_path" in locals() and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
