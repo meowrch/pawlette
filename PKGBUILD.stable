@@ -1,25 +1,20 @@
 # Maintainer: Dmitry <dimflix.official@gmail.com>
-pkgname=pawlette-git
-conflicts=('pawlette')
-provides=('pawlette')
-pkgver=r1.0.0
+pkgname=pawlette
+conflicts=('pawlette-git')
+provides=('pawlette-git')
+pkgver=1.0.0  # Автоматически обновится в workflow
 pkgrel=1
-pkgdesc="😺 Utility for changing themes in the meowrch"
+pkgdesc="😺 Utility for changing themes in the meowrch (stable)"
 arch=('any')
 url="https://github.com/meowrch/pawlette"
 license=('GPL-3.0')
 depends=('python')
 makedepends=('python-uv' 'python-virtualenv' 'git')
-source=("git+https://github.com/meowrch/pawlette.git")
-sha256sums=('SKIP')
-
-pkgver() {
-  cd "$srcdir/pawlette"
-  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
-}
+source=("$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Автоматическая замена в workflow
 
 package() {
-  cd "$srcdir/pawlette"
+  cd "$srcdir/pawlette-$pkgver"
 
   # Install virtual environment
   install -d -m755 "$pkgdir/opt/$pkgname"
@@ -32,7 +27,7 @@ package() {
   # Create launch script
   install -Dm755 /dev/stdin "$pkgdir/usr/bin/pawlette" << EOF
 #!/bin/sh
-cd /opt/pawlette-git
+cd /opt/pawlette
 exec .venv/bin/python run.py "\$@"
 EOF
 }

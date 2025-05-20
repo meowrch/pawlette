@@ -1,4 +1,7 @@
 {
+    "files.associations": {
+        "PKGBUILD.*": "shellscript"
+    },
     // General settings
     "files.exclude": {
         ".git": true,
