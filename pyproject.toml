@@ -15,6 +15,7 @@ maintainers = [
 dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
+    "requests>=2.32.3",
     "systemd>=0.17.1",
     "tqdm>=4.67.1",
 ]
