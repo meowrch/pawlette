@@ -194,6 +194,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "loguru" },
+    { name = "packaging" },
     { name = "pydantic" },
     { name = "requests" },
     { name = "systemd" },
@@ -211,6 +212,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "packaging", specifier = ">=24.2" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "systemd", specifier = ">=0.17.1" },
