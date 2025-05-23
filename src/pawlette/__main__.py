@@ -8,8 +8,8 @@ from loguru import logger
 import pawlette.constants as cnst
 from pawlette.common.setup_loguru import setup_loguru
 from pawlette.config import generate_default_config
-from pawlette.theming.backup import BackupSystem
-from pawlette.theming.manager import ThemeManager
+from pawlette.core.backup import BackupSystem
+from pawlette.core.manager import ThemeManager
 
 ##==> Настраиваем loguru
 ################################
