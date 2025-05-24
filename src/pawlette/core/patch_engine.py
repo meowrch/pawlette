@@ -7,8 +7,6 @@ from loguru import logger
 
 from pawlette.config import cfg
 
-from .backup import BackupSystem
-
 
 class FormatManager:
     @staticmethod
@@ -26,8 +24,6 @@ class PatchEngine:
         post_content: str | None = None,
     ) -> bool:
         tmp_path = None
-        BackupSystem.create_backup(target_file)
-
         try:
             with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
                 style = FormatManager.get_comment_style(target_file)
