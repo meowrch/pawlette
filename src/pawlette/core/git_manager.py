@@ -65,3 +65,27 @@ class GitManager:
             text=True,
         )
         return result.stdout.strip()
+
+    def get_branches(self) -> list:
+        result = subprocess.run(
+            ["git", "-C", str(self.repo_path), "branch", "--all"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.splitlines()
+
+    def get_log(self, limit=10) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(self.repo_path), "log", "--oneline", f"-{limit}"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+
+    def get_status(self) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(self.repo_path), "status", "-s"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout

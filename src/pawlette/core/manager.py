@@ -35,6 +35,13 @@ class ThemeManager:
             self.git.checkout(self.BASE_BRANCH)
             self.git.commit("Initial base state")
 
+    def _log_repo_state(self):
+        logger.debug("Current Git state:")
+        logger.debug("Branches:\n" + "\n".join(self.git.get_branches()))
+        logger.debug("Last commits:\n" + self.git.get_log(5))
+        logger.debug("Status:\n" + self.git.get_status())
+        logger.debug("Current commit: " + self.git.get_current_commit())
+
     @staticmethod
     def get_all_themes() -> list[Theme]:
         """Gives all found themes in the system and local directory.
@@ -109,6 +116,9 @@ class ThemeManager:
         Raises:
             ThemeNotFound: Theme not found
         """
+        logger.debug(f"=== BEFORE APPLY {theme_name} ===")
+        self._log_repo_state()
+
         theme: Theme | None = ThemeManager.get_theme(theme_name)
 
         if theme is None:
@@ -146,14 +156,26 @@ class ThemeManager:
             self.git.reset_hard("HEAD^")
             raise
 
+        logger.debug(f"=== AFTER APPLY {theme_name} ===")
+        self._log_repo_state()
+
     def restore_original(self) -> None:
         """Возврат к базовому состоянию с сохранением пользовательских изменений"""
+        logger.debug("=== BEFORE RESTORE ===")
+        self._log_repo_state()
+
         if self._has_uncommitted_changes():
             self.git.stash()
             self.git.checkout(self.BASE_BRANCH)
             self.git.stash_pop()
         else:
             self.git.checkout(self.BASE_BRANCH)
+
+        logger.debug("=== AFTER RESTORE ===")
+        self._log_repo_state()
+
+        logger.debug("=== BEFORE RESTORE ===")
+        self._log_repo_state()
 
     def _apply_theme_changes(self, theme: Theme):
         ##==> Apply all configs
