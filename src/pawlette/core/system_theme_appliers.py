@@ -176,6 +176,9 @@ class BaseThemeApplier:
         theme_name = f"pawlette-{theme.name}"
         theme_link = self.symlink_dir / theme_name
 
+        # Создаём стандартную папку с gtk темами, если её не было
+        self.symlink_dir.mkdir(parents=True, exist_ok=True) 
+
         if create_symlink_dir(theme_folder.absolute(), theme_link):
             return theme_folder
         return None
