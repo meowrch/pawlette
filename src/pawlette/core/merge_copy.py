@@ -10,13 +10,15 @@ from pawlette.schemas.commands import CommandInfo
 from pawlette.schemas.themes import Theme
 
 from .patch_engine import PatchEngine
+from pawlette.schemas.config_struct import Config
 
 
 class MergeCopyHandler:
-    __slots__ = "theme"
+    __slots__ = "theme", "config"
 
-    def __init__(self, theme: Theme) -> None:
+    def __init__(self, theme: Theme, config: Config) -> None:
         self.theme: Theme = theme
+        self.config: Config = config
 
     def apply_for_all_configs(self):
         for app in (self.theme.path / "configs").iterdir():
@@ -110,6 +112,7 @@ class MergeCopyHandler:
                 PatchEngine.apply_to_file(
                     theme_name=self.theme.name,
                     target_file=dst,
+                    config=self.config,
                     pre_content=p["pre"],
                     post_content=p["post"],
                 )

@@ -67,6 +67,13 @@ COMMENT_FORMATS = {
 DEFAULT_CONFIG = {
     "max_backups": 5,
     "comment_styles": COMMENT_FORMATS,
+    "logging": {
+        "enable_console": False,
+        "console_level": "INFO",
+        "file_level": "DEBUG",
+        "journal_level": "INFO",
+        "enable_colors": True,
+    },
 }
 
 

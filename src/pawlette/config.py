@@ -4,12 +4,7 @@ from pathlib import Path
 from loguru import logger
 
 import pawlette.constants as cnst
-from pawlette.common.setup_loguru import setup_loguru
 from pawlette.schemas.config_struct import Config
-
-##==> Настраиваем loguru
-################################
-setup_loguru()
 
 
 def generate_default_config():
@@ -49,4 +44,3 @@ def load_config(path: Path) -> Config:
         return Config(**cnst.DEFAULT_CONFIG)
 
 
-cfg: Config = load_config(cnst.APP_CONFIG_FILE)

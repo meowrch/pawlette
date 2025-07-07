@@ -7,12 +7,8 @@ from loguru import logger
 
 import pawlette.constants as cnst
 from pawlette.common.setup_loguru import setup_loguru
-from pawlette.config import generate_default_config
+from pawlette.config import generate_default_config, load_config
 from pawlette.core.manager import ThemeManager
-
-##==> Настраиваем loguru
-################################
-setup_loguru()
 
 
 def configure_argparser() -> argparse.ArgumentParser:
@@ -164,8 +160,6 @@ def print_backups(backups: List[dict], original_path: Path) -> None:
 
 
 def main() -> None:
-    manager = ThemeManager()
-
     ##==> Создание каталогов, если их нет.
     ##########################################
     dirs_to_create = [
@@ -178,6 +172,15 @@ def main() -> None:
 
     for p in dirs_to_create:
         p.mkdir(parents=True, exist_ok=True)
+        
+    ##==> Загрузка конфигурации и настройка логирования
+    ##########################################
+    config = load_config(cnst.APP_CONFIG_FILE)
+    setup_loguru(config)
+    
+    ##==> Инициализация менеджера тем
+    ##########################################
+    manager = ThemeManager(config)
 
     ##==> Обработка аргументов
     ##########################################

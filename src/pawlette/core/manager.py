@@ -14,6 +14,7 @@ from .installer import Installer
 from .merge_copy import MergeCopyHandler
 from .system_theme_appliers import GTKThemeApplier
 from .system_theme_appliers import IconThemeApplier
+from pawlette.schemas.config_struct import Config
 
 
 class ThemeManager:
@@ -22,13 +23,14 @@ class ThemeManager:
     USER_PREFIX = "user/"
     installer: Installer
 
-    def __init__(self, use_selective: bool = True) -> None:
+    def __init__(self, config: Config, use_selective: bool = True) -> None:
         self.installer = Installer()
         self.use_selective = use_selective
+        self.config = config
         
         if use_selective:
             from .selective_manager import SelectiveThemeManager
-            self.selective_manager = SelectiveThemeManager()
+            self.selective_manager = SelectiveThemeManager(config)
         else:
             # Fallback to old git-based system
             self.git = GitManager(
@@ -222,7 +224,7 @@ class ThemeManager:
     def _apply_theme_changes(self, theme: Theme):
         ##==> Apply all configs
         ##################################
-        merge = MergeCopyHandler(theme=theme)
+        merge = MergeCopyHandler(theme=theme, config=self.config)
         merge.apply_for_all_configs()
 
         ##==> Apply GTK theme

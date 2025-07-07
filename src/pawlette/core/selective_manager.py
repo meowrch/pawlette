@@ -11,6 +11,7 @@ import pawlette.constants as cnst
 from pawlette.core.merge_copy import MergeCopyHandler
 from pawlette.errors.themes import ThemeNotFound
 from pawlette.schemas.themes import Theme
+from pawlette.schemas.config_struct import Config
 
 
 class SelectiveThemeManager:
@@ -24,11 +25,12 @@ class SelectiveThemeManager:
     4. Простота и надежность
     """
 
-    def __init__(self):
+    def __init__(self, config: Config):
         self.state_dir = cnst.APP_STATE_DIR
         self.config_dir = cnst.XDG_CONFIG_HOME
         self.git_repo = self.state_dir / "config_state.git"
         self.ignored_patterns_file = self.state_dir / "ignored_patterns.txt"
+        self.config = config
 
         self._ensure_directories()
         self._init_git_repo()
@@ -218,7 +220,7 @@ class SelectiveThemeManager:
             # Получаем стиль комментариев для файла
             from pawlette.core.patch_engine import FormatManager
 
-            comment_style = FormatManager.get_comment_style(file_path)
+            comment_style = FormatManager.get_comment_style(file_path, self.config)
 
             # Создаем паттерн для удаления всех PAW-THEME блоков
             pattern = re.compile(
@@ -307,7 +309,7 @@ class SelectiveThemeManager:
 
             # Применяем тему (используем существующий обработчик)
             logger.info(f"Copying theme files for: {theme_name}")
-            merge = MergeCopyHandler(theme=theme)
+            merge = MergeCopyHandler(theme=theme, config=self.config)
             merge.apply_for_all_configs()
 
             # Коммитим изменения от применения темы
