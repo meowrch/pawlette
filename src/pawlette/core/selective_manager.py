@@ -10,8 +10,8 @@ from loguru import logger
 import pawlette.constants as cnst
 from pawlette.core.merge_copy import MergeCopyHandler
 from pawlette.errors.themes import ThemeNotFound
-from pawlette.schemas.themes import Theme
 from pawlette.schemas.config_struct import Config
+from pawlette.schemas.themes import Theme
 
 
 class SelectiveThemeManager:
@@ -29,12 +29,10 @@ class SelectiveThemeManager:
         self.state_dir = cnst.APP_STATE_DIR
         self.config_dir = cnst.XDG_CONFIG_HOME
         self.git_repo = self.state_dir / "config_state.git"
-        self.ignored_patterns_file = self.state_dir / "ignored_patterns.txt"
         self.config = config
 
         self._ensure_directories()
         self._init_git_repo()
-        self._load_ignored_patterns()
 
     def _ensure_directories(self):
         """Создаем необходимые директории"""
@@ -53,58 +51,137 @@ class SelectiveThemeManager:
             # Создаем пустой коммит в main ветке
             self._run_git("commit", "--allow-empty", "-m", "Initial commit")
 
-    def _load_ignored_patterns(self):
-        """Загружаем паттерны игнорируемых файлов"""
-        if not self.ignored_patterns_file.exists():
-            # Создаем файл с базовыми паттернами проблемных приложений
-            default_patterns = [
-                # Electron приложения
-                "Code/Cache/*",
-                "Code/logs/*",
-                "Code/User/globalStorage/*",
-                "Code/User/workspaceStorage/*",
-                "Code/CachedExtensions/*",
-                "discord/Cache/*",
-                "discord/logs/*",
-                "discord/Local Storage/*",
-                "discord/Session Storage/*",
-                # Браузеры
-                "google-chrome/Default/Cache/*",
-                "google-chrome/Default/History*",
-                "google-chrome/Default/Cookies*",
-                "google-chrome/ShaderCache/*",
-                # Терминалы
-                "warp-terminal/user_preferences.json",
-                "warp-terminal/logs/*",
-                # Общие паттерны
-                "*/Cache/*",
-                "*/cache/*",
-                "*/logs/*",
-                "*/log/*",
-                "*/tmp/*",
-                "*/temp/*",
-                "*/.DS_Store",
-                "*/Thumbs.db",
-                # Базы данных и временные файлы
-                "*.db",
-                "*.db-journal",
-                "*.tmp",
-                "*.lock",
-                "*.pid",
-                # Специфичные для приложений
-                "pulse/cookie",
-                "dconf/user",
-                "fontconfig/fonts.conf",
-                "menus/applications-merged/*",
-            ]
+        # Создаем или обновляем info/exclude файл с универсальными паттернами
+        self._create_git_exclude_file()
 
-            with open(self.ignored_patterns_file, "w") as f:
-                f.write("\n".join(default_patterns))
+    def _create_git_exclude_file(self):
+        """Создаем или обновляем info/exclude файл с универсальными паттернами игнорирования"""
+        exclude_path = self.git_repo / "info" / "exclude"
+        exclude_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(self.ignored_patterns_file, "r") as f:
-            self.ignored_patterns = [
-                line.strip() for line in f if line.strip() and not line.startswith("#")
-            ]
+        self.ignored_patterns = [
+            # Папки кешей и временных данных
+            "**/Cache/",
+            "**/cache/",
+            "**/Caches/",
+            "**/caches/",
+            "**/GPUCache/",
+            "**/ShaderCache/",
+            "**/DawnCache/",
+            "**/DawnWebGPUCache/",
+            "**/DawnGraphiteCache/",
+            "**/CachedData/",
+            "**/CachedExtensions/",
+            "**/CachedImages/",
+            "**/CachedResources/",
+            # Папки логов
+            "**/logs/",
+            "**/log/",
+            "**/Logs/",
+            "**/Log/",
+            "**/logging/",
+            "**/Logging/",
+            # Папки временных данных
+            "**/tmp/",
+            "**/temp/",
+            "**/temporary/",
+            "**/Tmp/",
+            "**/Temp/",
+            "**/Temporary/",
+            # Папки данных браузера/electron
+            "**/Local Storage/",
+            "**/Session Storage/",
+            "**/IndexedDB/",
+            "**/databases/",
+            "**/File System/",
+            "**/Service Worker/",
+            "**/blob_storage/",
+            "**/WebStorage/",
+            "**/Application Cache/",
+            "**/Media Cache/",
+            "**/Platform Notifications/",
+            "**/shared_proto_db/",
+            "**/optimization_guide_hint_cache_store/",
+            "**/optimization_guide_prediction_model_downloads/",
+            "**/GrShaderCache/",
+            # Папки состояний приложений
+            "**/globalStorage/",
+            "**/workspaceStorage/",
+            "**/sessionStorage/",
+            "**/localStorage/",
+            "**/sessionData/",
+            "**/userData/",
+            # Файлы по расширениям
+            # Логи
+            "*.log",
+            "*.log.*",
+            "*.logs",
+            "*.out",
+            "*.err",
+            # Базы данных
+            "*.db",
+            "*.db-*",
+            "*.sqlite",
+            "*.sqlite3",
+            "*.sqlite-*",
+            "*.leveldb",
+            # Временные файлы
+            "*.tmp",
+            "*.temp",
+            "*.bak",
+            "*.backup",
+            "*.old",
+            "*.orig",
+            "*.swp",
+            "*.swo",
+            "*.~*",
+            # Блокировки и процессы
+            "*.lock",
+            "*.pid",
+            "*.lck",
+            "*.lockfile",
+            # Cookies и сессии
+            "*Cookies*",
+            "*cookies*",
+            "*cookie*",
+            "*Cookie*",
+            "*Session*",
+            "*session*",
+            "*History*",
+            "*history*",
+            # Прочие временные данные
+            "*TransportSecurity*",
+            "*QuotaManager*",
+            "*Favicons*",
+            "*Thumbnails*",
+            "*thumbnails*",
+            "*Trash*",
+            "*trash*",
+            # Системные файлы
+            ".DS_Store",
+            ".DS_Store?",
+            "._*",
+            ".Spotlight-V100",
+            ".Trashes",
+            "ehthumbs.db",
+            "Thumbs.db",
+            # Недавно использованные файлы
+            "*recently-used*",
+            "*Recently-used*",
+            "*.recently-used*",
+            "*.Recently-used*",
+            # Резервные копии
+            "*~",
+            "*.bak",
+            "*.backup",
+            "*.old",
+            "*.orig",
+            "*.save",
+            "*.autosave",
+        ]
+
+        with open(exclude_path, "w") as f:
+            f.write("\n".join(self.ignored_patterns))
 
     def _run_git(self, *args: str) -> bool:
         """Выполняем git команду в контексте нашего репозитория"""
@@ -312,14 +389,25 @@ class SelectiveThemeManager:
             merge = MergeCopyHandler(theme=theme, config=self.config)
             merge.apply_for_all_configs()
 
-            # Коммитим изменения от применения темы
+            # Добавляем ВСЕ файлы темы в git (включая новые)
             for file_path in theme_files:
-                self._run_git("add", str(file_path))
-
-            self._run_git("commit", "-m", f"Apply theme: {theme_name} v{new_version}")
-
-            # Сохраняем версию темы
+                if file_path.exists():
+                    self._run_git("add", str(file_path))
+                    
+            # Сохраняем версию темы ПЕРЕД коммитом
             self._save_theme_version(theme_name, new_version)
+            
+            # Добавляем файл версии в коммит
+            version_file = self.state_dir / f"{theme_name}.version"
+            self._run_git("add", str(version_file))
+
+            # Коммитим все изменения темы
+            self._run_git("commit", "-m", f"Apply theme: {theme_name} v{new_version}")
+            
+            # Проверяем, что файлы действительно закоммичены
+            uncommitted = self._get_uncommitted_files()
+            if uncommitted:
+                logger.warning(f"Some files still uncommitted after theme apply: {uncommitted}")
 
         logger.info(f"Theme {theme_name} applied successfully")
 
@@ -560,6 +648,23 @@ class SelectiveThemeManager:
         except subprocess.CalledProcessError:
             return False
 
+    def _get_uncommitted_files(self) -> List[str]:
+        """Получаем список uncommitted файлов"""
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(self.git_repo), "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            files = []
+            for line in result.stdout.strip().split("\n"):
+                if line.strip():
+                    files.append(line[3:])  # Убираем статус и пробелы
+            return files
+        except subprocess.CalledProcessError:
+            return []
+
     def get_user_changes_info(self, theme_name: Optional[str] = None) -> dict:
         """Получаем информацию о пользовательских изменениях (uncommitted)"""
         try:
@@ -610,3 +715,16 @@ class SelectiveThemeManager:
             with open(self.ignored_patterns_file, "a") as f:
                 f.write(f"\n{pattern}")
             logger.info(f"Added ignore pattern: {pattern}")
+
+    def restore_original(self):
+        """Возвращаем к базовому/оригинальному состоянию (main ветка)"""
+        logger.info("Restoring to original state")
+        
+        # Сохраняем текущие изменения если есть
+        if self.has_uncommitted_changes():
+            self._handle_uncommitted_changes()
+        
+        # Переключаемся на main ветку
+        self._run_git("checkout", "main")
+        
+        logger.info("Restored to original state (main branch)")
