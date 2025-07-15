@@ -377,10 +377,6 @@ class SelectiveThemeManager:
             # Получаем файлы темы для отслеживания
             theme_files = self._get_theme_files(theme)
 
-            # Добавляем файлы в git (если они еще не отслеживаются)
-            for file_path in theme_files:
-                self._run_git("add", str(file_path))
-
             # ВАЖНО: Очищаем старые патчи перед применением новых
             self._clean_old_patches_from_theme_files(theme_files)
 
@@ -389,19 +385,26 @@ class SelectiveThemeManager:
             merge = MergeCopyHandler(theme=theme, config=self.config)
             merge.apply_for_all_configs()
 
-            # Добавляем ВСЕ файлы темы в git (включая новые)
-            for file_path in theme_files:
-                if file_path.exists():
-                    self._run_git("add", str(file_path))
+            # ВАЖНО: Получаем файлы темы ПОСЛЕ их создания И патчинга
+            theme_files = self._get_theme_files(theme)
                     
             # Сохраняем версию темы ПЕРЕД коммитом
             self._save_theme_version(theme_name, new_version)
             
+            # Добавляем ВСЕ файлы темы в git ПОСЛЕ всех изменений (включая патчинг)
+            for file_path in theme_files:
+                if file_path.exists():
+                    self._run_git("add", str(file_path))
+                    
             # Добавляем файл версии в коммит
             version_file = self.state_dir / f"{theme_name}.version"
             self._run_git("add", str(version_file))
+            
+            # Добавляем все измененные файлы (которые были модифицированы в процессе применения темы)
+            # Это включает файлы, которые были изменены в процессе копирования и патчинга
+            self._run_git("add", "-A")  # Добавляем все изменения
 
-            # Коммитим все изменения темы
+            # Коммитим все изменения темы (включая результаты патчинга)
             self._run_git("commit", "-m", f"Apply theme: {theme_name} v{new_version}")
             
             # Проверяем, что файлы действительно закоммичены
@@ -685,9 +688,22 @@ class SelectiveThemeManager:
             for line in result.stdout.strip().split("\n"):
                 if line.strip():
                     # Парсим вывод git status --porcelain
-                    status = line[:2]
-                    filename = line[3:]
-                    changed_files.append(filename)
+                    # Формат: XY filename (где XY - двухсимвольный статус)
+                    # Но может быть и X filename (без второго символа статуса)
+                    if len(line) >= 3:
+                        # Ищем первый пробел после статуса
+                        space_index = line.find(' ', 2)  # Ищем пробел после второго символа
+                        if space_index == -1:
+                            space_index = line.find(' ', 1)  # Ищем пробел после первого символа
+                        
+                        if space_index != -1:
+                            status = line[:space_index]
+                            filename = line[space_index + 1:]  # Берем все после пробела
+                            changed_files.append(filename)
+                        else:
+                            # Fallback: берем все после второго символа
+                            filename = line[2:]
+                            changed_files.append(filename)
 
             return {"has_changes": len(changed_files) > 0, "files": changed_files}
         except subprocess.CalledProcessError:

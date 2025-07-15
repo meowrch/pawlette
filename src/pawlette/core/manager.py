@@ -107,6 +107,12 @@ class ThemeManager:
         theme = ThemeManager.get_theme(theme_name)
         if theme:
             self._apply_system_themes(theme)
+            
+            # Коммитим изменения от системных тем (если есть)
+            if self.selective_manager.has_uncommitted_changes():
+                logger.info("Committing system theme changes")
+                self.selective_manager._run_git("add", "-A")
+                self.selective_manager._run_git("commit", "-m", f"Apply system themes for: {theme_name}")
         else:
             logger.warning("theme not found")
             raise ThemeNotFound(theme_name)
