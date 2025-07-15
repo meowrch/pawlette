@@ -363,6 +363,8 @@ class SelectiveThemeManager:
             logger.info(
                 f"Theme {theme_name} v{new_version} already applied, just switched branch"
             )
+            # Выполняем команды перезагрузки даже при простом переключении веток
+            self._execute_reload_commands(theme)
             return
 
         need_copy_files = (
@@ -413,6 +415,51 @@ class SelectiveThemeManager:
                 logger.warning(f"Some files still uncommitted after theme apply: {uncommitted}")
 
         logger.info(f"Theme {theme_name} applied successfully")
+
+    def _execute_reload_commands(self, theme: Theme):
+        """Выполняем команды перезагрузки для всех приложений темы"""
+        configs_dir = theme.path / "configs"
+        if not configs_dir.exists():
+            return
+        
+        for app_dir in configs_dir.iterdir():
+            if not app_dir.is_dir():
+                continue
+                
+            app_name = app_dir.name
+            command = cnst.RELOAD_COMMANDS.get(app_name, None)
+            
+            if command:
+                logger.info(f"Executing reload command for {app_name}: {command.command}")
+                try:
+                    # Проверяем условия выполнения команды
+                    if command.check_command_exists:
+                        import shutil
+                        if not shutil.which(command.check_command_exists):
+                            logger.debug(f"Command {command.check_command_exists} not found, skipping reload")
+                            continue
+                    
+                    if command.check_process:
+                        result = subprocess.run(
+                            ["pgrep", command.check_process], 
+                            capture_output=True
+                        )
+                        if result.returncode != 0:
+                            logger.debug(f"Process {command.check_process} not running, skipping reload")
+                            continue
+                    
+                    # Выполняем команду
+                    subprocess.run(
+                        command.command.split(),
+                        check=True,
+                        capture_output=True,
+                    )
+                    logger.debug(f"Successfully reloaded {app_name}")
+                    
+                except subprocess.CalledProcessError as e:
+                    logger.warning(f"Failed to reload {app_name}: {e}")
+                except Exception as e:
+                    logger.warning(f"Error executing reload command for {app_name}: {e}")
 
     def _should_skip_apply(self, theme_name: str, theme: Theme) -> bool:
         """Проверяем, нужно ли применять тему или она уже применена с той же версией"""
