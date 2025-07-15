@@ -144,19 +144,6 @@ def validate_file_path(input_path: str) -> Path:
     return path
 
 
-def print_backups(backups: List[dict], original_path: Path) -> None:
-    """Pretty print backup list"""
-    if not backups:
-        print(f"No backups available for {original_path}")
-        return
-
-    print(f"Available backups for {original_path}:")
-    print("-" * 80)
-    for backup in backups:
-        print(f"Hash: {backup['hash']}")
-        print(f"Timestamp: {backup['timestamp']}")
-        print(f"Location: {backup['path']}")
-        print("-" * 80)
 
 
 def main() -> None:
@@ -167,7 +154,6 @@ def main() -> None:
         cnst.APP_CACHE_DIR,
         cnst.APP_CONFIG_DIR,
         cnst.THEMES_FOLDER,
-        cnst.APP_BACKUP_DIR,
     ]
 
     for p in dirs_to_create:

@@ -12,6 +12,5 @@ class LoggingConfig(BaseModel):
 
 
 class Config(BaseModel):
-    max_backups: int = Field(default=5)
     comment_styles: dict[str, str]
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
