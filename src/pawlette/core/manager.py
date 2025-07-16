@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import json
-import subprocess
 
 from loguru import logger
 
@@ -107,7 +106,7 @@ class ThemeManager:
         theme = ThemeManager.get_theme(theme_name)
         if theme:
             self._apply_system_themes(theme)
-            
+
             # Коммитим изменения от системных тем (если есть)
             if self.selective_manager.has_uncommitted_changes():
                 logger.info("Committing system theme changes")

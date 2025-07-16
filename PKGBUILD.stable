@@ -42,17 +42,17 @@ EOF
 
 post_install() {
   echo "Setting up pawlette configuration..."
-  
+
   # Apply systemd tmpfiles configuration
   systemd-tmpfiles --create /usr/lib/tmpfiles.d/pawlette.conf
-  
+
   # Create default config for all users if they don't have one
   getent passwd | while IFS=: read -r name _ uid _ _ home _; do
     # Skip system users (uid < 1000)
     if [ "$uid" -ge 1000 ] && [ -d "$home" ]; then
       config_dir="$home/.config/pawlette"
       config_file="$config_dir/pawlette.json"
-      
+
       if [ ! -f "$config_file" ]; then
         echo "Creating default config for user $name"
         sudo -u "$name" mkdir -p "$config_dir"
@@ -60,7 +60,7 @@ post_install() {
       fi
     fi
   done
-  
+
   echo "Pawlette installation completed!"
   echo "Configuration file: ~/.config/pawlette/pawlette.json"
   echo "Logs: journalctl -t pawlette"

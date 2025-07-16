@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-from pathlib import Path
-from typing import List
 
 from loguru import logger
 
@@ -65,7 +63,7 @@ def configure_argparser() -> argparse.ArgumentParser:
     apply_theme_parser.add_argument(
         "theme_name", type=str, help="Name of theme to apply"
     )
-    
+
     # Apply theme (alias)
     apply_theme_parser_alias = subparsers.add_parser(
         "apply", help="Apply specified theme (alias for set-theme)"
@@ -96,15 +94,15 @@ def configure_argparser() -> argparse.ArgumentParser:
         "history", help="Show commit history for current or specified theme"
     )
     history_parser.add_argument(
-        "theme_name", 
-        type=str, 
-        nargs="?", 
+        "theme_name",
+        type=str,
+        nargs="?",
         help="Name of theme to show history for (current theme if not specified)"
     )
     history_parser.add_argument(
-        "--limit", 
-        type=int, 
-        default=10, 
+        "--limit",
+        type=int,
+        default=10,
         help="Maximum number of commits to show (default: 10)"
     )
 
@@ -113,9 +111,9 @@ def configure_argparser() -> argparse.ArgumentParser:
         "user-changes", help="Show information about uncommitted user changes"
     )
     user_changes_parser.add_argument(
-        "theme_name", 
-        type=str, 
-        nargs="?", 
+        "theme_name",
+        type=str,
+        nargs="?",
         help="Name of theme to check (current theme if not specified)"
     )
 
@@ -127,21 +125,13 @@ def configure_argparser() -> argparse.ArgumentParser:
         "commit_hash", type=str, help="Hash of the commit to restore"
     )
     restore_commit_parser.add_argument(
-        "theme_name", 
-        type=str, 
-        nargs="?", 
+        "theme_name",
+        type=str,
+        nargs="?",
         help="Name of theme (current theme if not specified)"
     )
 
     return parser
-
-
-def validate_file_path(input_path: str) -> Path:
-    """Helper to resolve and validate file path"""
-    path = Path(input_path).expanduser().absolute()
-    if not path.exists():
-        raise argparse.ArgumentTypeError(f"File not found: {path}")
-    return path
 
 
 
@@ -158,12 +148,12 @@ def main() -> None:
 
     for p in dirs_to_create:
         p.mkdir(parents=True, exist_ok=True)
-        
+
     ##==> Загрузка конфигурации и настройка логирования
     ##########################################
     config = load_config(cnst.APP_CONFIG_FILE)
     setup_loguru(config)
-    
+
     ##==> Инициализация менеджера тем
     ##########################################
     manager = ThemeManager(config)
@@ -235,15 +225,15 @@ def main() -> None:
             if not manager.use_selective:
                 print("History command is only available in selective mode")
                 return
-            
+
             theme_name = args.theme_name or manager.get_current_theme_name()
             if not theme_name:
                 print("No theme specified and no current theme active")
                 return
-                
+
             print(f"📜 History for theme: {theme_name}")
             print("-" * 60)
-            
+
             # Get all commits for this theme branch
             import subprocess
             try:
@@ -251,7 +241,7 @@ def main() -> None:
                     "git", "-C", str(manager.selective_manager.git_repo),
                     "log", "--oneline", f"--max-count={args.limit}", theme_name
                 ], capture_output=True, text=True, check=True)
-                
+
                 if result.stdout.strip():
                     for line in result.stdout.strip().split("\n"):
                         parts = line.split(" ", 1)
@@ -269,17 +259,17 @@ def main() -> None:
             if not manager.use_selective:
                 print("User-changes command is only available in selective mode")
                 return
-                
+
             theme_name = args.theme_name or manager.get_current_theme_name()
             if not theme_name:
                 print("No theme specified and no current theme active")
                 return
-                
+
             changes_info = manager.selective_manager.get_user_changes_info(theme_name)
-            
+
             print(f"🔍 User changes for theme: {theme_name}")
             print("-" * 60)
-            
+
             if changes_info["has_changes"]:
                 print(f"Found {len(changes_info['files'])} modified files:")
                 for file in changes_info["files"]:
@@ -291,12 +281,12 @@ def main() -> None:
             if not manager.use_selective:
                 print("Restore-commit command is only available in selective mode")
                 return
-                
+
             theme_name = args.theme_name or manager.get_current_theme_name()
             if not theme_name:
                 print("No theme specified and no current theme active")
                 return
-                
+
             try:
                 manager.selective_manager.restore_user_commit(theme_name, args.commit_hash)
                 print(f"✅ Successfully restored commit {args.commit_hash} for theme {theme_name}")

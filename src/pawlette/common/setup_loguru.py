@@ -24,8 +24,8 @@ def ensure_log_directory():
                 test_file.touch(exist_ok=True)
 
             # Проверяем права на запись
-            with open(log_file, "a") as f:
-                pass
+            if not os.access(log_file, os.W_OK):
+                raise PermissionError(f"No write access to: {log_file}")
 
             return log_file
         except (PermissionError, OSError) as e:
@@ -46,7 +46,11 @@ def setup_loguru(config) -> None:
     disable_logging()
 
     # Настройка вывода в systemd journal
-    logger.add(journal.JournaldLogHandler("pawlette"), level=config.logging.journal_level, format="{message}")
+    logger.add(
+        journal.JournaldLogHandler("pawlette"),
+        level=config.logging.journal_level,
+        format="{message}",
+    )
 
     # Настройка вывода в файл
     log_file = ensure_log_directory()
@@ -59,7 +63,7 @@ def setup_loguru(config) -> None:
         format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
         enqueue=True,
     )
-    
+
     # Добавляем вывод в терминал, если это указано в конфиге
     if config.logging.enable_console:
         logger.add(
@@ -68,5 +72,5 @@ def setup_loguru(config) -> None:
             format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | {message}",
             colorize=config.logging.enable_colors,
         )
-    
+
     return True

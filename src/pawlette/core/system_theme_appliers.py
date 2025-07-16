@@ -2,8 +2,6 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import List
-from typing import Optional
 
 from loguru import logger
 
@@ -23,7 +21,7 @@ class BaseThemeApplier:
         xsettings_key: str,
         symlink_dir: Path,
         theme_folder_attr: str,
-        qt_configs: Optional[List[Path]] = None,
+        qt_configs: list[Path] | None = None,
     ):
         self.config_key = config_key
         self.gsettings_key = gsettings_key
@@ -166,7 +164,7 @@ class BaseThemeApplier:
         elif cnst.SESSION_TYPE == LinuxSessionType.X11:
             self._apply_x11_theme(theme_name)
 
-    def _setup_symlink(self, theme: Theme) -> Optional[Path]:
+    def _setup_symlink(self, theme: Theme) -> Path | None:
         """Создает симлинк темы и возвращает путь к теме"""
         theme_folder = getattr(theme, self.theme_folder_attr)
         if not theme_folder.exists():

@@ -5,7 +5,6 @@ import re
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Dict
 
 import requests
 from loguru import logger
@@ -19,16 +18,16 @@ from pawlette.schemas.themes import InstalledThemeInfo
 class Installer:
     def __init__(self):
         # Кэш установленных тем
-        self.installed_themes: Dict[str, InstalledThemeInfo] = (
+        self.installed_themes: dict[str, InstalledThemeInfo] = (
             self._load_installed_themes()
         )
 
-    def _load_installed_themes(self) -> Dict[str, InstalledThemeInfo]:
+    def _load_installed_themes(self) -> dict[str, InstalledThemeInfo]:
         """Загружает информацию об установленных темах из кэша"""
         if not cnst.VERSIONS_FILE.exists():
             return {}
 
-        with open(cnst.VERSIONS_FILE, "r") as f:
+        with open(cnst.VERSIONS_FILE) as f:
             data = json.load(f)
             return {
                 name: InstalledThemeInfo(
@@ -60,7 +59,7 @@ class Installer:
             return url.replace("/blob/", "/raw/")
         return url
 
-    def fetch_available_themes(self) -> Dict[str, str]:
+    def fetch_available_themes(self) -> dict[str, str]:
         """Получает список доступных тем из репозитория"""
         try:
             response = requests.get(cnst.THEMES_LIST_URL)

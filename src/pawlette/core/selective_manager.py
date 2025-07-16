@@ -2,8 +2,6 @@
 import datetime
 import subprocess
 from pathlib import Path
-from typing import List
-from typing import Optional
 
 from loguru import logger
 
@@ -214,7 +212,7 @@ class SelectiveThemeManager:
 
         return fnmatch.fnmatch(path, pattern)
 
-    def _get_theme_files(self, theme: Theme) -> List[Path]:
+    def _get_theme_files(self, theme: Theme) -> list[Path]:
         """Получаем все файлы темы, которые есть в config"""
         files = []
         configs_dir = theme.path / "configs"
@@ -335,7 +333,7 @@ class SelectiveThemeManager:
         except Exception as e:
             logger.warning(f"Failed to clean patches from {file_path}: {e}")
 
-    def _clean_old_patches_from_theme_files(self, theme_files: List[Path]):
+    def _clean_old_patches_from_theme_files(self, theme_files: list[Path]):
         """Очищаем все файлы темы от старых патчей"""
         logger.info("Cleaning old patches from files")
         for file_path in theme_files:
@@ -351,7 +349,7 @@ class SelectiveThemeManager:
             raise ThemeNotFound(theme_name)
 
         # Проверяем, нужно ли копировать файлы или просто переключить ветку
-        current_theme = self.get_current_theme()
+        self.get_current_theme()
         new_version = self._get_theme_version_from_installed(theme_name)
 
         # Сначала переключаемся на ветку темы, чтобы проверить её состояние
@@ -389,30 +387,32 @@ class SelectiveThemeManager:
 
             # ВАЖНО: Получаем файлы темы ПОСЛЕ их создания И патчинга
             theme_files = self._get_theme_files(theme)
-                    
+
             # Сохраняем версию темы ПЕРЕД коммитом
             self._save_theme_version(theme_name, new_version)
-            
+
             # Добавляем ВСЕ файлы темы в git ПОСЛЕ всех изменений (включая патчинг)
             for file_path in theme_files:
                 if file_path.exists():
                     self._run_git("add", str(file_path))
-                    
+
             # Добавляем файл версии в коммит
             version_file = self.state_dir / f"{theme_name}.version"
             self._run_git("add", str(version_file))
-            
+
             # Добавляем все измененные файлы (которые были модифицированы в процессе применения темы)
             # Это включает файлы, которые были изменены в процессе копирования и патчинга
             self._run_git("add", "-A")  # Добавляем все изменения
 
             # Коммитим все изменения темы (включая результаты патчинга)
             self._run_git("commit", "-m", f"Apply theme: {theme_name} v{new_version}")
-            
+
             # Проверяем, что файлы действительно закоммичены
             uncommitted = self._get_uncommitted_files()
             if uncommitted:
-                logger.warning(f"Some files still uncommitted after theme apply: {uncommitted}")
+                logger.warning(
+                    f"Some files still uncommitted after theme apply: {uncommitted}"
+                )
 
         logger.info(f"Theme {theme_name} applied successfully")
 
@@ -421,33 +421,39 @@ class SelectiveThemeManager:
         configs_dir = theme.path / "configs"
         if not configs_dir.exists():
             return
-        
+
         for app_dir in configs_dir.iterdir():
             if not app_dir.is_dir():
                 continue
-                
+
             app_name = app_dir.name
             command = cnst.RELOAD_COMMANDS.get(app_name, None)
-            
+
             if command:
-                logger.info(f"Executing reload command for {app_name}: {command.command}")
+                logger.info(
+                    f"Executing reload command for {app_name}: {command.command}"
+                )
                 try:
                     # Проверяем условия выполнения команды
                     if command.check_command_exists:
                         import shutil
+
                         if not shutil.which(command.check_command_exists):
-                            logger.debug(f"Command {command.check_command_exists} not found, skipping reload")
+                            logger.debug(
+                                f"Command {command.check_command_exists} not found, skipping reload"
+                            )
                             continue
-                    
+
                     if command.check_process:
                         result = subprocess.run(
-                            ["pgrep", command.check_process], 
-                            capture_output=True
+                            ["pgrep", command.check_process], capture_output=True
                         )
                         if result.returncode != 0:
-                            logger.debug(f"Process {command.check_process} not running, skipping reload")
+                            logger.debug(
+                                f"Process {command.check_process} not running, skipping reload"
+                            )
                             continue
-                    
+
                     # Выполняем команду
                     subprocess.run(
                         command.command.split(),
@@ -455,69 +461,15 @@ class SelectiveThemeManager:
                         capture_output=True,
                     )
                     logger.debug(f"Successfully reloaded {app_name}")
-                    
+
                 except subprocess.CalledProcessError as e:
                     logger.warning(f"Failed to reload {app_name}: {e}")
                 except Exception as e:
-                    logger.warning(f"Error executing reload command for {app_name}: {e}")
+                    logger.warning(
+                        f"Error executing reload command for {app_name}: {e}"
+                    )
 
-    def _should_skip_apply(self, theme_name: str, theme: Theme) -> bool:
-        """Проверяем, нужно ли применять тему или она уже применена с той же версией"""
-        try:
-            # Проверяем, находимся ли мы уже на ветке этой темы
-            current_theme = self.get_current_theme()
-            if current_theme != theme_name:
-                return False
 
-            # Проверяем версию темы
-            current_version = self._get_saved_theme_version(theme_name)
-            new_version = self._get_theme_version(theme)
-
-            if current_version != new_version:
-                logger.info(
-                    f"Theme version changed: {current_version} -> {new_version}"
-                )
-                return False
-
-            logger.debug(f"Theme {theme_name} version {new_version} already applied")
-            return True
-
-        except Exception as e:
-            logger.debug(f"Version check failed: {e}, proceeding with apply")
-            return False
-
-    def _get_theme_version(self, theme: Theme) -> str:
-        """Получаем версию темы из различных источников"""
-        # Проверяем файл theme.toml
-        theme_config = theme.path / "theme.toml"
-        if theme_config.exists():
-            try:
-                import tomllib
-
-                with open(theme_config, "rb") as f:
-                    config = tomllib.load(f)
-                    return config.get("version", "unknown")
-            except Exception:
-                pass
-
-        # Проверяем git теги/коммиты в директории темы
-        try:
-            result = subprocess.run(
-                ["git", "-C", str(theme.path), "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if result.returncode == 0:
-                return result.stdout.strip()[:8]  # Короткий хеш коммита
-        except Exception:
-            pass
-
-        # Fallback: используем время модификации директории
-        import os
-
-        mtime = os.path.getmtime(theme.path)
-        return str(int(mtime))
 
     def _save_theme_version(self, theme_name: str, version: str):
         """Сохраняем версию темы в state_dir"""
@@ -534,12 +486,6 @@ class SelectiveThemeManager:
             return version_file.read_text().strip()
         return "unknown"
 
-    def _get_saved_theme_version(self, theme_name: str) -> str:
-        """Получаем сохраненную версию темы"""
-        version_file = self.state_dir / f"{theme_name}.version"
-        if version_file.exists():
-            return version_file.read_text().strip()
-        return "unknown"
 
     def _get_theme_version_from_installed(self, theme_name: str) -> str:
         """Получаем версию темы из installed_themes.json"""
@@ -552,7 +498,7 @@ class SelectiveThemeManager:
         try:
             import json
 
-            with open(installed_themes_file, "r") as f:
+            with open(installed_themes_file) as f:
                 installed_themes = json.load(f)
 
             # Проверяем точное имя и имя с префиксом catppuccin-
@@ -571,74 +517,6 @@ class SelectiveThemeManager:
             logger.error(f"Failed to read installed_themes.json: {e}")
             return "unknown"
 
-    def get_user_commits(self, theme_name: str) -> List[dict]:
-        """Получаем список пользовательских коммитов для темы"""
-        try:
-            # Переключаемся на ветку темы (если нужно)
-            current_theme = self.get_current_theme()
-            if current_theme != theme_name:
-                logger.debug(f"Switching to theme {theme_name} to get user commits")
-                self._create_or_switch_branch(theme_name)
-
-            # Получаем все коммиты с пометкой [USER]
-            result = subprocess.run(
-                [
-                    "git",
-                    "-C",
-                    str(self.git_repo),
-                    "log",
-                    "--oneline",
-                    "--grep=\\[USER\\]",
-                    "--all",
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            commits = []
-            for line in result.stdout.strip().split("\n"):
-                if line.strip():
-                    parts = line.split(" ", 1)
-                    if len(parts) >= 2:
-                        hash_short = parts[0]
-                        message = parts[1]
-
-                        # Получаем дополнительную информацию о коммите
-                        detail_result = subprocess.run(
-                            [
-                                "git",
-                                "-C",
-                                str(self.git_repo),
-                                "show",
-                                "--no-patch",
-                                "--format=%H|%ad|%s",
-                                "--date=iso",
-                                hash_short,
-                            ],
-                            capture_output=True,
-                            text=True,
-                            check=True,
-                        )
-
-                        if detail_result.stdout.strip():
-                            hash_full, date, msg = detail_result.stdout.strip().split(
-                                "|", 2
-                            )
-                            commits.append(
-                                {
-                                    "hash": hash_short,
-                                    "hash_full": hash_full,
-                                    "date": date,
-                                    "message": msg,
-                                }
-                            )
-
-            return commits
-
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to get user commits: {e}")
-            return []
 
     def restore_user_commit(self, theme_name: str, commit_hash: str):
         """Восстанавливаем пользовательские изменения из коммита"""
@@ -659,7 +537,7 @@ class SelectiveThemeManager:
             logger.error(f"Failed to restore user commit: {e}")
             raise
 
-    def get_current_theme(self) -> Optional[str]:
+    def get_current_theme(self) -> str | None:
         """Получаем название текущей ветки (темы)"""
         try:
             result = subprocess.run(
@@ -673,17 +551,6 @@ class SelectiveThemeManager:
         except subprocess.CalledProcessError:
             return None
 
-    def reset_to_clean_theme(self, theme_name: str):
-        """Сбрасываем к чистому состоянию темы (убираем пользовательские изменения)"""
-        logger.info(f"Resetting to clean theme: {theme_name}")
-
-        # Переключаемся на ветку
-        self._create_or_switch_branch(theme_name)
-
-        # Сбрасываем к последнему коммиту (убираем uncommitted changes)
-        self._run_git("reset", "--hard", "HEAD")
-
-        logger.info(f"Reset to clean state: {theme_name}")
 
     def has_uncommitted_changes(self) -> bool:
         """Проверяем, есть ли uncommitted изменения"""
@@ -698,7 +565,7 @@ class SelectiveThemeManager:
         except subprocess.CalledProcessError:
             return False
 
-    def _get_uncommitted_files(self) -> List[str]:
+    def _get_uncommitted_files(self) -> list[str]:
         """Получаем список uncommitted файлов"""
         try:
             result = subprocess.run(
@@ -715,7 +582,7 @@ class SelectiveThemeManager:
         except subprocess.CalledProcessError:
             return []
 
-    def get_user_changes_info(self, theme_name: Optional[str] = None) -> dict:
+    def get_user_changes_info(self, theme_name: str | None = None) -> dict:
         """Получаем информацию о пользовательских изменениях (uncommitted)"""
         try:
             # Если указана тема, переключаемся на неё
@@ -739,13 +606,18 @@ class SelectiveThemeManager:
                     # Но может быть и X filename (без второго символа статуса)
                     if len(line) >= 3:
                         # Ищем первый пробел после статуса
-                        space_index = line.find(' ', 2)  # Ищем пробел после второго символа
+                        space_index = line.find(
+                            " ", 2
+                        )  # Ищем пробел после второго символа
                         if space_index == -1:
-                            space_index = line.find(' ', 1)  # Ищем пробел после первого символа
-                        
+                            space_index = line.find(
+                                " ", 1
+                            )  # Ищем пробел после первого символа
+
                         if space_index != -1:
-                            status = line[:space_index]
-                            filename = line[space_index + 1:]  # Берем все после пробела
+                            filename = line[
+                                space_index + 1 :
+                            ]  # Берем все после пробела
                             changed_files.append(filename)
                         else:
                             # Fallback: берем все после второго символа
@@ -757,7 +629,7 @@ class SelectiveThemeManager:
             return {"has_changes": False, "files": []}
 
     @staticmethod
-    def _get_theme(theme_name: str) -> Optional[Theme]:
+    def _get_theme(theme_name: str) -> Theme | None:
         """Получаем тему по имени"""
         path = cnst.THEMES_FOLDER / theme_name
         sys_path = cnst.SYS_THEMES_FOLDER / theme_name
@@ -767,27 +639,17 @@ class SelectiveThemeManager:
                 return Theme(name=theme_name, path=p)
         return None
 
-    def list_ignored_patterns(self) -> List[str]:
-        """Возвращаем список паттернов игнорируемых файлов"""
-        return self.ignored_patterns.copy()
 
-    def add_ignored_pattern(self, pattern: str):
-        """Добавляем новый паттерн игнорирования"""
-        if pattern not in self.ignored_patterns:
-            self.ignored_patterns.append(pattern)
-            with open(self.ignored_patterns_file, "a") as f:
-                f.write(f"\n{pattern}")
-            logger.info(f"Added ignore pattern: {pattern}")
 
     def restore_original(self):
         """Возвращаем к базовому/оригинальному состоянию (main ветка)"""
         logger.info("Restoring to original state")
-        
+
         # Сохраняем текущие изменения если есть
         if self.has_uncommitted_changes():
             self._handle_uncommitted_changes()
-        
+
         # Переключаемся на main ветку
         self._run_git("checkout", "main")
-        
+
         logger.info("Restored to original state (main branch)")
