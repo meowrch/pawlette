@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import shutil
 import tarfile
 import tempfile
 from pathlib import Path
@@ -130,6 +131,13 @@ class Installer:
 
             # Целевая директория для темы
             theme_target_dir = cnst.THEMES_FOLDER / theme_name
+
+            # Полностью удаляем старую папку темы для чистого обновления
+            if theme_target_dir.exists():
+                logger.info(f"Removing old theme directory: {theme_target_dir}")
+                shutil.rmtree(theme_target_dir)
+
+            # Создаём новую чистую папку
             theme_target_dir.mkdir(exist_ok=True, parents=True)
 
             # Распаковка архива с обработкой структуры

@@ -178,8 +178,21 @@ class BaseThemeApplier:
             return theme_folder
         return None
 
+    def cleanup(self, theme_name: str) -> None:
+        """Очищает симлинки темы"""
+        theme_link = self.symlink_dir / f"pawlette-{theme_name}"
+        if theme_link.exists():
+            logger.debug(f"Removing symlink: {theme_link}")
+            if theme_link.is_symlink():
+                theme_link.unlink()
+            elif theme_link.is_dir():
+                shutil.rmtree(theme_link)
+
     def apply(self, theme: Theme) -> None:
         """Основной метод применения темы"""
+        # Очищаем старые симлинки перед применением новых
+        self.cleanup(theme.name)
+
         if self._setup_symlink(theme):
             theme_name = f"pawlette-{theme.name}"
             self._apply_theme_configs(theme_name)
@@ -231,10 +244,32 @@ class GTKThemeApplier(BaseThemeApplier):
         except Exception as e:
             logger.error(f"Ошибка создания ссылки {dest.name}: {e}")
 
+    def cleanup(self, theme_name: str) -> None:
+        """Переопределенная очистка с обработкой GTK4"""
+        # Очищаем основной симлинк
+        super().cleanup(theme_name)
+
+        # Очищаем GTK4 симлинки
+        self._cleanup_gtk4_symlinks()
+
+    def _cleanup_gtk4_symlinks(self) -> None:
+        """Очищает GTK4 симлинки в .config/gtk-4.0"""
+        gtk4_dir = Path.home() / ".config" / "gtk-4.0"
+        for item in ["gtk.css", "gtk-dark.css", "assets"]:
+            symlink_path = gtk4_dir / item
+            if symlink_path.exists():
+                logger.debug(f"Removing GTK4 symlink: {symlink_path}")
+                if symlink_path.is_symlink():
+                    symlink_path.unlink()
+                elif symlink_path.is_dir():
+                    shutil.rmtree(symlink_path)
+
     def apply(self, theme: Theme) -> None:
         """Переопределенный метод с обработкой GTK4"""
-        theme_folder = self._setup_symlink(theme)
+        # Очищаем старые симлинки перед применением новых
+        self.cleanup(theme.name)
 
+        theme_folder = self._setup_symlink(theme)
         if theme_folder:
             self._link_gtk4_styles(theme_folder)
             theme_name = f"pawlette-{theme.name}"

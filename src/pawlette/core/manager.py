@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import shutil
 
 from loguru import logger
 
@@ -102,16 +103,19 @@ class ThemeManager:
         # Используем селективный менеджер
         self.selective_manager.apply_theme(theme_name)
 
-        # Применяем системные темы (GTK, иконки, обои)
+        # Получаем тему
         theme = ThemeManager.get_theme(theme_name)
         if theme:
+            # Применяем системные темы (GTK, иконки, обои)
             self._apply_system_themes(theme)
 
             # Коммитим изменения от системных тем (если есть)
             if self.selective_manager.has_uncommitted_changes():
                 logger.info("Committing system theme changes")
                 self.selective_manager._run_git("add", "-A")
-                self.selective_manager._run_git("commit", "-m", f"Apply system themes for: {theme_name}")
+                self.selective_manager._run_git(
+                    "commit", "-m", f"Apply system themes for: {theme_name}"
+                )
         else:
             logger.warning("theme not found")
             raise ThemeNotFound(theme_name)
@@ -120,20 +124,35 @@ class ThemeManager:
         """Применяем системные темы (GTK, иконки, обои)"""
         logger.info("Applying system themes (GTK, icons, wallpapers)")
 
-        ##==> Apply GTK theme
+        ##==> Apply GTK theme (только если существует)
         ##################################
-        GTKThemeApplier().apply(theme)
+        if theme.gtk_folder.exists():
+            logger.info("Applying GTK theme")
+            GTKThemeApplier().apply(theme)
+        else:
+            logger.info("GTK theme not found in this version, skipping")
 
-        ##==> Apply Icon theme
+        ##==> Apply Icon theme (только если существует)
         ##################################
-        IconThemeApplier().apply(theme)
+        if theme.icons_folder.exists():
+            logger.info("Applying icon theme")
+            IconThemeApplier().apply(theme)
+        else:
+            logger.info("Icon theme not found in this version, skipping")
 
         ##==> Apply wallpapers
         ##################################
-        theme.wallpapers_folder.mkdir(parents=True, exist_ok=True)
-        create_symlink_dir(
-            target=theme.wallpapers_folder, link=cnst.THEME_WALLPAPERS_SYMLINK
-        )
+        if theme.wallpapers_folder.exists():
+            theme.wallpapers_folder.mkdir(parents=True, exist_ok=True)
+            create_symlink_dir(
+                target=theme.wallpapers_folder, link=cnst.THEME_WALLPAPERS_SYMLINK
+            )
+        else:
+            if cnst.THEME_WALLPAPERS_SYMLINK.exists():
+                if cnst.THEME_WALLPAPERS_SYMLINK.is_symlink():
+                    cnst.THEME_WALLPAPERS_SYMLINK.unlink()
+                elif cnst.THEME_WALLPAPERS_SYMLINK.is_dir():
+                    shutil.rmtree(cnst.THEME_WALLPAPERS_SYMLINK)
 
     def restore_original(self) -> None:
         """Возврат к базовому состоянию с сохранением пользовательских изменений"""
