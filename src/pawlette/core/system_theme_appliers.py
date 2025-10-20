@@ -337,9 +337,7 @@ class CursorThemeApplier(BaseThemeApplier):
             config_path.write_text(new_content)
             return True
         except Exception as e:
-            logger.error(
-                f"Ошибка обновления QT (cursor) конфига {config_path}: {e}"
-            )
+            logger.error(f"Ошибка обновления QT (cursor) конфига {config_path}: {e}")
             return False
 
     def _update_gtk_key(self, config_path: Path, key: str, value: str) -> bool:
@@ -426,6 +424,57 @@ class CursorThemeApplier(BaseThemeApplier):
             logger.error(f"Ошибка применения X11 темы курсора: {e}")
             return False
 
+    def _update_icons_index_theme(self, theme_name: str) -> bool:
+        """Обновляет ~/.icons/default/index.theme для X-курсоров"""
+        index_theme_dir = Path.home() / ".icons" / "default"
+        index_theme_path = index_theme_dir / "index.theme"
+        try:
+            index_theme_dir.mkdir(parents=True, exist_ok=True)
+
+            content = f"""[Icon Theme]
+Inherits={theme_name}
+"""
+            index_theme_path.write_text(content)
+            logger.debug(f"Updated {index_theme_path} with cursor theme: {theme_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка обновления index.theme: {e}")
+            return False
+
+    def _update_xresources(self, theme_name: str, size: int | None = None) -> bool:
+        xresources_path = Path.home() / ".Xresources"
+
+        if xresources_path.exists():
+            try:
+                content = xresources_path.read_text()
+
+                theme_line = f"Xcursor.theme: {theme_name}"
+                if "Xcursor.theme:" in content:
+                    content = re.sub(r"Xcursor\.theme:.*", theme_line, content)
+                else:
+                    content += f"\n{theme_line}\n"
+
+                # Обновляем размер если указан
+                if size is not None:
+                    size_line = f"Xcursor.size: {size}"
+                    if "Xcursor.size:" in content:
+                        content = re.sub(r"Xcursor\.size:.*", size_line, content)
+                    else:
+                        content += f"\n{size_line}\n"
+
+                xresources_path.write_text(content)
+
+                # Применяем изменения
+                if self._is_command_available("xrdb"):
+                    subprocess.run(["xrdb", "-merge", str(xresources_path)], check=True)
+
+                return True
+            except Exception as e:
+                logger.error(f"Ошибка обновления .Xresources: {e}")
+                return False
+        else:
+            return False
+
     def apply(self, theme: Theme) -> None:
         """Применяет тему курсора как pawlette-<theme> при наличии иконок"""
         self.cleanup(theme.name)
@@ -439,46 +488,11 @@ class CursorThemeApplier(BaseThemeApplier):
         for config in self.qt_configs:
             self._update_qt_config(config, theme_name)
 
+        self._update_icons_index_theme(theme_name)
+        self._update_xresources(theme_name, size=None)
+
         # Live session
         if cnst.SESSION_TYPE == LinuxSessionType.WAYLAND:
             self._apply_wayland_theme(theme_name)
         elif cnst.SESSION_TYPE == LinuxSessionType.X11:
             self._apply_x11_cursor(theme_name, size=None)
-
-    def apply_by_name(self, theme_name: str, size: int | None = None) -> None:
-        """Применяет тему курсора по имени (без симлинков). Поддерживает size."""
-        # GTK конфиги
-        for config in [cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG]:
-            self._update_gtk_config(config, theme_name)
-            if size is not None:
-                self._update_gtk_key(config, "gtk-cursor-theme-size", str(size))
-
-        # QT конфиги
-        for config in self.qt_configs:
-            self._update_qt_config(config, theme_name)
-            if size is not None and config.exists():
-                try:
-                    content = config.read_text()
-                    size_entry = f"cursor_size={size}"
-                    if "[Appearance]" in content:
-                        if "cursor_size=" in content:
-                            new_content = re.sub(r"cursor_size=.*", size_entry, content)
-                        else:
-                            new_content = content.replace(
-                                "[Appearance]", f"[Appearance]\n{size_entry}", 1
-                            )
-                    else:
-                        new_content = content + f"\n[Appearance]\n{size_entry}\n"
-                    config.write_text(new_content)
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка обновления QT (cursor size) конфига {config}: {e}"
-                    )
-
-        # Live session
-        if cnst.SESSION_TYPE == LinuxSessionType.WAYLAND:
-            self._apply_wayland_theme(theme_name)
-            if size is not None:
-                self._apply_wayland_size(size)
-        elif cnst.SESSION_TYPE == LinuxSessionType.X11:
-            self._apply_x11_cursor(theme_name, size)
