@@ -291,3 +291,194 @@ class IconThemeApplier(BaseThemeApplier):
                 Path.home() / ".config" / "qt6ct" / "qt6ct.conf",
             ],
         )
+
+
+class CursorThemeApplier(BaseThemeApplier):
+    """Обработчик темы курсора: обновляет GTK, Qt и применяет через gsettings/xsettingsd"""
+
+    def __init__(self):
+        super().__init__(
+            config_key="gtk-cursor-theme-name",
+            gsettings_key="cursor-theme",
+            xsettings_key="Gtk/CursorThemeName",
+            symlink_dir=cnst.ICON_THEME_SYMLINK_DIR,
+            theme_folder_attr="icons_folder",
+            qt_configs=[
+                Path.home() / ".config" / "qt5ct" / "qt5ct.conf",
+                Path.home() / ".config" / "qt6ct" / "qt6ct.conf",
+            ],
+        )
+
+    def _update_qt_config(self, config_path: Path, theme_name: str) -> bool:
+        """
+        Обновляет QT конфиг с темой курсора (cursor_theme)
+        """
+        if not config_path.exists():
+            logger.warning(f"QT конфиг не существует: {config_path}")
+            return False
+
+        try:
+            content = config_path.read_text()
+            theme_entry = f"cursor_theme={theme_name}"
+
+            if theme_entry in content:
+                return False
+
+            if "[Appearance]" in content:
+                if "cursor_theme=" in content:
+                    new_content = re.sub(r"cursor_theme=.*", theme_entry, content)
+                else:
+                    new_content = content.replace(
+                        "[Appearance]", f"[Appearance]\n{theme_entry}", 1
+                    )
+            else:
+                new_content = content + f"\n[Appearance]\n{theme_entry}\n"
+
+            config_path.write_text(new_content)
+            return True
+        except Exception as e:
+            logger.error(
+                f"Ошибка обновления QT (cursor) конфига {config_path}: {e}"
+            )
+            return False
+
+    def _update_gtk_key(self, config_path: Path, key: str, value: str) -> bool:
+        """Универсально обновляет/добавляет ключ GTK"""
+        if not config_path.parent.exists():
+            logger.warning(f"Директория конфига не существует: {config_path.parent}")
+            return False
+
+        try:
+            config_path.touch(exist_ok=True)
+            content = config_path.read_text()
+            entry = f"{key}={value}"
+            if entry in content:
+                return False
+
+            if f"{key}=" in content:
+                new_content = re.sub(rf"{key}=.*", entry, content)
+                config_path.write_text(new_content)
+            else:
+                with config_path.open("a") as f:
+                    f.write(f"{entry}\n")
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка обновления GTK ключа {key} в {config_path}: {e}")
+            return False
+
+    def _apply_wayland_size(self, size: int) -> bool:
+        """Применяет размер курсора через gsettings (Wayland)"""
+        if not self._is_command_available("gsettings"):
+            logger.warning("gsettings не найден")
+            return False
+
+        try:
+            subprocess.run(
+                [
+                    "gsettings",
+                    "set",
+                    "org.gnome.desktop.interface",
+                    "cursor-size",
+                    str(size),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Ошибка gsettings (cursor-size): {e.stderr}")
+            return False
+
+    def _apply_x11_cursor(self, theme_name: str, size: int | None) -> bool:
+        """Применяет тему курсора для X11 через xsettingsd (имя и размер)"""
+        if not self._is_command_available("xsettingsd"):
+            logger.warning("xsettingsd не найден")
+            return False
+
+        if not cnst.XSETTINGSD_CONFIG.exists():
+            logger.warning(f"Конфиг xsettingsd не найден: {cnst.XSETTINGSD_CONFIG}")
+            return False
+
+        try:
+            content = cnst.XSETTINGSD_CONFIG.read_text()
+            name_line = f'{self.xsettings_key} "{theme_name}"'
+            size_key = "Gtk/CursorThemeSize"
+            size_line = f"{size_key} {size}" if size is not None else None
+
+            # Update name
+            if self.xsettings_key in content:
+                content = re.sub(rf"{self.xsettings_key} .*", name_line, content)
+            else:
+                content = content + f"\n{name_line}\n"
+
+            # Update size
+            if size_line is not None:
+                if size_key in content:
+                    content = re.sub(rf"{size_key} .*", size_line, content)
+                else:
+                    content = content + f"\n{size_line}\n"
+
+            cnst.XSETTINGSD_CONFIG.write_text(content)
+            subprocess.run(["killall", "-HUP", "xsettingsd"], check=True)
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка применения X11 темы курсора: {e}")
+            return False
+
+    def apply(self, theme: Theme) -> None:
+        """Применяет тему курсора как pawlette-<theme> при наличии иконок"""
+        self.cleanup(theme.name)
+        # Иконки могли быть уже залинкованы, повторная операция безопасна
+        self._setup_symlink(theme)
+        theme_name = f"pawlette-{theme.name}"
+
+        # Обновляем конфиги
+        for config in [cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG]:
+            self._update_gtk_config(config, theme_name)
+        for config in self.qt_configs:
+            self._update_qt_config(config, theme_name)
+
+        # Live session
+        if cnst.SESSION_TYPE == LinuxSessionType.WAYLAND:
+            self._apply_wayland_theme(theme_name)
+        elif cnst.SESSION_TYPE == LinuxSessionType.X11:
+            self._apply_x11_cursor(theme_name, size=None)
+
+    def apply_by_name(self, theme_name: str, size: int | None = None) -> None:
+        """Применяет тему курсора по имени (без симлинков). Поддерживает size."""
+        # GTK конфиги
+        for config in [cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG]:
+            self._update_gtk_config(config, theme_name)
+            if size is not None:
+                self._update_gtk_key(config, "gtk-cursor-theme-size", str(size))
+
+        # QT конфиги
+        for config in self.qt_configs:
+            self._update_qt_config(config, theme_name)
+            if size is not None and config.exists():
+                try:
+                    content = config.read_text()
+                    size_entry = f"cursor_size={size}"
+                    if "[Appearance]" in content:
+                        if "cursor_size=" in content:
+                            new_content = re.sub(r"cursor_size=.*", size_entry, content)
+                        else:
+                            new_content = content.replace(
+                                "[Appearance]", f"[Appearance]\n{size_entry}", 1
+                            )
+                    else:
+                        new_content = content + f"\n[Appearance]\n{size_entry}\n"
+                    config.write_text(new_content)
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка обновления QT (cursor size) конфига {config}: {e}"
+                    )
+
+        # Live session
+        if cnst.SESSION_TYPE == LinuxSessionType.WAYLAND:
+            self._apply_wayland_theme(theme_name)
+            if size is not None:
+                self._apply_wayland_size(size)
+        elif cnst.SESSION_TYPE == LinuxSessionType.X11:
+            self._apply_x11_cursor(theme_name, size)

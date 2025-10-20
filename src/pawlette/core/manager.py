@@ -14,6 +14,7 @@ from .installer import Installer
 from .selective_manager import SelectiveThemeManager
 from .system_theme_appliers import GTKThemeApplier
 from .system_theme_appliers import IconThemeApplier
+from .system_theme_appliers import CursorThemeApplier
 
 
 class ThemeManager:
@@ -140,6 +141,14 @@ class ThemeManager:
         else:
             logger.info("Icon theme not found in this version, skipping")
 
+        ##==> Apply Cursor theme (если присутствует)
+        ##################################
+        if theme.icons_folder.exists() and (theme.icons_folder / "cursors").exists():
+            logger.info("Applying cursor theme")
+            CursorThemeApplier().apply(theme)
+        else:
+            logger.info("Cursor theme not found in this version, skipping")
+
         ##==> Apply wallpapers
         ##################################
         if theme.wallpapers_folder.exists():
@@ -160,6 +169,7 @@ class ThemeManager:
 
         # Используем селективный менеджер для восстановления
         self.selective_manager.restore_original()
+
 
     def get_current_theme_name(self) -> str | None:
         """Get current theme name from selective manager"""
