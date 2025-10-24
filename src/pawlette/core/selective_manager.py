@@ -377,6 +377,10 @@ class SelectiveThemeManager:
             logger.warning(
                 f"Theme {theme_name} version file exists but no git commit found. Re-applying theme."
             )
+        
+        # Если версия изменилась и ветка существует - создаём бэкап старой ветки
+        if current_version != new_version and current_version != "unknown" and has_theme_commit:
+            self._backup_and_recreate_branch(theme_name, current_version)
 
         need_copy_files = (
             True  # Всегда копируем файлы при переключении или изменении версии
@@ -502,6 +506,36 @@ class SelectiveThemeManager:
             return bool(result.stdout.strip())
         except subprocess.CalledProcessError:
             return False
+
+    def _backup_and_recreate_branch(self, theme_name: str, old_version: str):
+        """Создаём бэкап старой ветки и пересоздаём ветку темы от main"""
+        import datetime
+        
+        # Сохраняем uncommitted изменения если есть
+        self._handle_uncommitted_changes()
+        
+        # Создаём имя бэкапа с версией и временной меткой
+        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup_branch_name = f"{theme_name}-v{old_version}-backup-{timestamp}"
+        
+        logger.info(f"Creating backup of old theme version: {backup_branch_name}")
+        
+        # Переименовываем текущую ветку в бэкап
+        self._run_git("branch", "-m", theme_name, backup_branch_name)
+        
+        # Переключаемся на main
+        self._run_git("checkout", "main")
+        
+        # Создаём новую чистую ветку от main
+        logger.info(f"Creating fresh branch: {theme_name} from main")
+        self._run_git("checkout", "-b", theme_name, "main")
+        
+        logger.info(
+            f"⚠️  Theme update: old version backed up to '{backup_branch_name}'"
+        )
+        logger.info(
+            f"📄 You can restore your customizations from the backup branch if needed"
+        )
 
     def _save_theme_version(self, theme_name: str, version: str):
         """Сохраняем версию темы в state_dir"""
@@ -685,3 +719,49 @@ class SelectiveThemeManager:
         self._run_git("checkout", "main")
 
         logger.info("Restored to original state (main branch)")
+
+    def list_backup_branches(self) -> list[str]:
+        """Получаем список всех бэкап веток"""
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(self.git_repo), "branch", "--list", "*-backup-*"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            branches = []
+            for line in result.stdout.strip().split("\n"):
+                if line.strip():
+                    # Убираем звёздочку (* указывает на текущую ветку)
+                    branch = line.strip().lstrip("* ").strip()
+                    branches.append(branch)
+            return branches
+        except subprocess.CalledProcessError:
+            return []
+
+    def delete_backup_branch(self, branch_name: str) -> bool:
+        """Удаляем бэкап ветки"""
+        if "-backup-" not in branch_name:
+            logger.error(f"Cannot delete non-backup branch: {branch_name}")
+            return False
+        
+        logger.info(f"Deleting backup branch: {branch_name}")
+        return self._run_git("branch", "-D", branch_name)
+
+    def cleanup_old_backups(self, theme_name: str | None = None, keep_last: int = 3):
+        """Удаляем старые бэкапы, оставляя только последние N"""
+        backups = self.list_backup_branches()
+        
+        # Фильтруем по имени темы если указано
+        if theme_name:
+            backups = [b for b in backups if b.startswith(f"{theme_name}-")]
+        
+        # Сортируем по временной метке (новые в начале)
+        backups.sort(reverse=True)
+        
+        # Удаляем всё кроме последних N
+        for backup in backups[keep_last:]:
+            self.delete_backup_branch(backup)
+        
+        if len(backups) > keep_last:
+            logger.info(f"Cleaned up {len(backups) - keep_last} old backup(s)")
