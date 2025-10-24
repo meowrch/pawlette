@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 import argparse
-from pathlib import Path
-from typing import List
 
 from loguru import logger
 
 import pawlette.constants as cnst
 from pawlette.common.setup_loguru import setup_loguru
-from pawlette.config import generate_default_config
-from pawlette.core.backup import BackupSystem
+from pawlette.config import generate_default_config, load_config
 from pawlette.core.manager import ThemeManager
-
-##==> Настраиваем loguru
-################################
-setup_loguru()
 
 
 def configure_argparser() -> argparse.ArgumentParser:
@@ -71,141 +64,79 @@ def configure_argparser() -> argparse.ArgumentParser:
         "theme_name", type=str, help="Name of theme to apply"
     )
 
-    # Backup commands
-    backup_parser = subparsers.add_parser("backup", help="Backup operations")
-    backup_subparsers = backup_parser.add_subparsers(
-        dest="backup_command", required=True
+    # Apply theme (alias)
+    apply_theme_parser_alias = subparsers.add_parser(
+        "apply", help="Apply specified theme (alias for set-theme)"
+    )
+    apply_theme_parser_alias.add_argument(
+        "theme_name", type=str, help="Name of theme to apply"
     )
 
-    # List backups
-    list_parser = backup_subparsers.add_parser("list", help="List available backups")
-    list_parser.add_argument(
-        "file_path",
+    # Restore
+    subparsers.add_parser("restore", help="Restore the original look")
+
+    # Reset theme to clean state
+    reset_theme_parser = subparsers.add_parser(
+        "reset-theme", help="Reset theme to clean state (remove user changes)"
+    )
+    reset_theme_parser.add_argument(
+        "theme_name", type=str, help="Name of theme to reset"
+    )
+
+    # Get current theme
+    subparsers.add_parser("current-theme", help="Show current active theme")
+
+    # Show git status
+    subparsers.add_parser("status", help="Show git repository status")
+
+    # Show history of current theme
+    history_parser = subparsers.add_parser(
+        "history", help="Show commit history for current or specified theme"
+    )
+    history_parser.add_argument(
+        "theme_name",
         type=str,
-        help="Original file path to list backups for (from home dir)",
+        nargs="?",
+        help="Name of theme to show history for (current theme if not specified)"
+    )
+    history_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of commits to show (default: 10)"
     )
 
-    # Restore backup
-    restore_parser = backup_subparsers.add_parser("restore", help="Restore from backup")
-    restore_parser.add_argument(
-        "file_path", type=str, help="Original file path to restore (from home dir)"
+    # Show user changes info
+    user_changes_parser = subparsers.add_parser(
+        "user-changes", help="Show information about uncommitted user changes"
     )
-    restore_parser.add_argument(
-        "--hash",
+    user_changes_parser.add_argument(
+        "theme_name",
         type=str,
-        help="Specific backup hash to restore (latest if not specified)",
+        nargs="?",
+        help="Name of theme to check (current theme if not specified)"
     )
 
-    # Cleanup backups
-    backup_subparsers.add_parser("cleanup", help="Clean up old backups")
-
-    # System backup commands
-    sys_backup_parser = subparsers.add_parser(
-        "system-backup", help="System backup operations"
+    # Restore specific commit
+    restore_commit_parser = subparsers.add_parser(
+        "restore-commit", help="Restore user changes from a specific commit"
     )
-    sys_backup_subparsers = sys_backup_parser.add_subparsers(
-        dest="sys_backup_command", required=True
+    restore_commit_parser.add_argument(
+        "commit_hash", type=str, help="Hash of the commit to restore"
     )
-
-    # Create system backup
-    create_parser = sys_backup_subparsers.add_parser(
-        "create", help="Create full system backup"
+    restore_commit_parser.add_argument(
+        "theme_name",
+        type=str,
+        nargs="?",
+        help="Name of theme (current theme if not specified)"
     )
-    create_parser.add_argument(
-        "--comment", type=str, help="Backup description", default=""
-    )
-
-    # Restore system backup
-    restore_parser = sys_backup_subparsers.add_parser(
-        "restore", help="Restore system from backup"
-    )
-    restore_parser.add_argument("backup_id", type=str, help="Backup ID to restore")
-
-    # List system backups
-    sys_backup_subparsers.add_parser("list", help="List all system backups")
 
     return parser
 
 
-def validate_file_path(input_path: str) -> Path:
-    """Helper to resolve and validate file path"""
-    path = Path(input_path).expanduser().absolute()
-    if not path.exists():
-        raise argparse.ArgumentTypeError(f"File not found: {path}")
-    return path
-
-
-def print_backups(backups: List[dict], original_path: Path) -> None:
-    """Pretty print backup list"""
-    if not backups:
-        print(f"No backups available for {original_path}")
-        return
-
-    print(f"Available backups for {original_path}:")
-    print("-" * 80)
-    for backup in backups:
-        print(f"Hash: {backup['hash']}")
-        print(f"Timestamp: {backup['timestamp']}")
-        print(f"Location: {backup['path']}")
-        print("-" * 80)
-
-
-def backup_command(args) -> None:
-    """Handle backup subcommands"""
-    match args.backup_command:
-        case "list":
-            original_path = validate_file_path(args.file_path)
-            backups = BackupSystem.get_backups(original_path)
-            print_backups(backups, original_path)
-
-        case "restore":
-            original_path = validate_file_path(args.file_path)
-            if BackupSystem.restore_backup(original_path, args.hash):
-                print(f"Successfully restored {original_path}")
-            else:
-                print(f"Failed to restore {original_path}")
-
-        case "cleanup":
-            BackupSystem.cleanup_old_backups()
-            print("Finished cleaning up old backups")
-
-        case _:
-            logger.warning(f"Unknown backup command: {args.backup_command}")
-
-
-def system_backup_command(args) -> None:
-    """Обрабатывает команды системных бэкапов."""
-    match args.sys_backup_command:
-        case "create":
-            backup_id = BackupSystem.create_system_backup(args.comment)
-            print(f"Created system backup with ID: {backup_id}")
-
-        case "restore":
-            if BackupSystem.restore_system_backup(args.backup_id):
-                print(f"Successfully restored system from backup {args.backup_id}")
-            else:
-                print(f"Failed to restore from backup {args.backup_id}")
-
-        case "list":
-            backups = BackupSystem.list_system_backups()
-            if not backups:
-                print("No system backups available")
-                return
-
-            print("Available system backups:")
-            for backup in backups:
-                print(f"ID: {backup['id']}")
-                print(f"Timestamp: {backup['timestamp']}")
-                print(f"Location: {backup['path']}")
-                print("-" * 50)
-
-        case _:
-            logger.warning(f"Unknown system backup command: {args.sys_backup_command}")
 
 
 def main() -> None:
-    manager = ThemeManager()
-
     ##==> Создание каталогов, если их нет.
     ##########################################
     dirs_to_create = [
@@ -213,11 +144,19 @@ def main() -> None:
         cnst.APP_CACHE_DIR,
         cnst.APP_CONFIG_DIR,
         cnst.THEMES_FOLDER,
-        cnst.APP_BACKUP_DIR,
     ]
 
     for p in dirs_to_create:
         p.mkdir(parents=True, exist_ok=True)
+
+    ##==> Загрузка конфигурации и настройка логирования
+    ##########################################
+    config = load_config(cnst.APP_CONFIG_FILE)
+    setup_loguru(config)
+
+    ##==> Инициализация менеджера тем
+    ##########################################
+    manager = ThemeManager(config)
 
     ##==> Обработка аргументов
     ##########################################
@@ -243,13 +182,116 @@ def main() -> None:
                 manager.installer.update_theme(args.theme_name)
         case "update-all-themes":
             manager.installer.update_all_themes()
-        case "set-theme":
+        case "set-theme" | "apply":
             if args.theme_name:
                 manager.apply_theme(args.theme_name)
-        case "backup":
-            backup_command(args, manager)
-        case "system-backup":
-            system_backup_command(args)
+        case "restore":
+            manager.restore_original()
+        case "reset-theme":
+            if args.theme_name:
+                manager.reset_theme_to_clean(args.theme_name)
+                print(f"Theme '{args.theme_name}' has been reset to clean state")
+        case "current-theme":
+            current_theme = manager.get_current_theme_name()
+            if current_theme:
+                print(f"Current theme: {current_theme}")
+            else:
+                print("No theme is currently active (base state)")
+        case "status":
+            if manager.use_selective:
+                current_theme = manager.get_current_theme_name()
+                if current_theme:
+                    print(f"Current theme: {current_theme}")
+                    changes_info = manager.selective_manager.get_user_changes_info()
+                    if changes_info["has_changes"]:
+                        print(f"⚠️  You have {len(changes_info['files'])} uncommitted changes")
+                        print("Modified files:")
+                        for file in changes_info["files"][:5]:  # Show first 5 files
+                            print(f"  - {file}")
+                        if len(changes_info["files"]) > 5:
+                            print(f"  ... and {len(changes_info['files']) - 5} more")
+                    else:
+                        print("✅ No uncommitted changes")
+                else:
+                    print("No theme is currently active (base state)")
+            else:
+                print(f"Current branch: {manager.git.get_current_branch()}")
+                print(f"Git status:\n{manager.git.get_status()}")
+                if manager.git.has_uncommitted_changes():
+                    print("⚠️  You have uncommitted changes")
+                else:
+                    print("✅ No uncommitted changes")
+        case "history":
+            if not manager.use_selective:
+                print("History command is only available in selective mode")
+                return
+
+            theme_name = args.theme_name or manager.get_current_theme_name()
+            if not theme_name:
+                print("No theme specified and no current theme active")
+                return
+
+            print(f"📜 History for theme: {theme_name}")
+            print("-" * 60)
+
+            # Get all commits for this theme branch
+            import subprocess
+            try:
+                result = subprocess.run([
+                    "git", "-C", str(manager.selective_manager.git_repo),
+                    "log", "--oneline", f"--max-count={args.limit}", theme_name
+                ], capture_output=True, text=True, check=True)
+
+                if result.stdout.strip():
+                    for line in result.stdout.strip().split("\n"):
+                        parts = line.split(" ", 1)
+                        if len(parts) >= 2:
+                            hash_short = parts[0]
+                            message = parts[1]
+                            # Mark user commits with a special icon
+                            icon = "👤" if "[USER]" in message else "🔧"
+                            print(f"{icon} {hash_short} {message}")
+                else:
+                    print("No commits found for this theme")
+            except subprocess.CalledProcessError:
+                print(f"Failed to get history for theme: {theme_name}")
+        case "user-changes":
+            if not manager.use_selective:
+                print("User-changes command is only available in selective mode")
+                return
+
+            theme_name = args.theme_name or manager.get_current_theme_name()
+            if not theme_name:
+                print("No theme specified and no current theme active")
+                return
+
+            changes_info = manager.selective_manager.get_user_changes_info(theme_name)
+
+            print(f"🔍 User changes for theme: {theme_name}")
+            print("-" * 60)
+
+            if changes_info["has_changes"]:
+                print(f"Found {len(changes_info['files'])} modified files:")
+                for file in changes_info["files"]:
+                    print(f"  📝 {file}")
+                print("\n💡 These changes will be automatically saved when you switch themes")
+            else:
+                print("✅ No uncommitted changes found")
+        case "restore-commit":
+            if not manager.use_selective:
+                print("Restore-commit command is only available in selective mode")
+                return
+
+            theme_name = args.theme_name or manager.get_current_theme_name()
+            if not theme_name:
+                print("No theme specified and no current theme active")
+                return
+
+            try:
+                manager.selective_manager.restore_user_commit(theme_name, args.commit_hash)
+                print(f"✅ Successfully restored commit {args.commit_hash} for theme {theme_name}")
+            except Exception as e:
+                print(f"❌ Failed to restore commit: {e}")
         case _:
             logger.warning(f'Command "{args.command}" not found!')
 

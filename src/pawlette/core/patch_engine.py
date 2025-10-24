@@ -5,16 +5,14 @@ from pathlib import Path
 
 from loguru import logger
 
-from pawlette.config import cfg
-
-from .backup import BackupSystem
+from pawlette.schemas.config_struct import Config
 
 
 class FormatManager:
     @staticmethod
-    def get_comment_style(file_path: Path) -> str:
+    def get_comment_style(file_path: Path, config: Config) -> str:
         ext = file_path.suffix.lower()
-        return cfg.comment_styles.get(ext, "#")
+        return config.comment_styles.get(ext, "#")
 
 
 class PatchEngine:
@@ -22,15 +20,14 @@ class PatchEngine:
     def apply_to_file(
         theme_name: str,
         target_file: Path,
+        config: Config,
         pre_content: str | None = None,
         post_content: str | None = None,
     ) -> bool:
         tmp_path = None
-        BackupSystem.create_backup(target_file)
-
         try:
             with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
-                style = FormatManager.get_comment_style(target_file)
+                style = FormatManager.get_comment_style(target_file, config)
                 new_content = ""
 
                 original = target_file.read_text() if target_file.exists() else ""

@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
 import json
+import shutil
 
 from loguru import logger
 
 import pawlette.constants as cnst
 from pawlette.common.utils import create_symlink_dir
 from pawlette.errors.themes import ThemeNotFound
+from pawlette.schemas.config_struct import Config
 from pawlette.schemas.themes import Theme
 
 from .installer import Installer
-from .merge_copy import MergeCopyHandler
+from .selective_manager import SelectiveThemeManager
 from .system_theme_appliers import GTKThemeApplier
 from .system_theme_appliers import IconThemeApplier
+from .system_theme_appliers import CursorThemeApplier
 
 
 class ThemeManager:
     installer: Installer
 
-    def __init__(self) -> None:
+    def __init__(self, config: Config, use_selective: bool = True) -> None:
         self.installer = Installer()
+        self.use_selective = use_selective
+        self.config = config
+
+        self.selective_manager = SelectiveThemeManager(config)
 
     @staticmethod
     def get_all_themes() -> list[Theme]:
@@ -81,13 +88,12 @@ class ThemeManager:
 
         for p in [sys_path, path]:
             if p.exists() and p.is_dir():
-                return Theme(name=theme_name, path=path)
+                return Theme(name=theme_name, path=p)
 
         return None
 
-    @staticmethod
-    def apply_theme(theme_name: str) -> None:
-        """Applying the theme
+    def apply_theme(self, theme_name: str) -> None:
+        """Applying the theme with selective manager
 
         Args:
             theme_name (str): Theme name
@@ -95,28 +101,80 @@ class ThemeManager:
         Raises:
             ThemeNotFound: Theme not found
         """
-        theme: Theme | None = ThemeManager.get_theme(theme_name)
+        # Используем селективный менеджер
+        self.selective_manager.apply_theme(theme_name)
 
-        if theme is None:
+        # Получаем тему
+        theme = ThemeManager.get_theme(theme_name)
+        if theme:
+            # Применяем системные темы (GTK, иконки, обои)
+            self._apply_system_themes(theme)
+
+            # Коммитим изменения от системных тем (если есть)
+            if self.selective_manager.has_uncommitted_changes():
+                logger.info("Committing system theme changes")
+                self.selective_manager._run_git("add", "-A")
+                self.selective_manager._run_git(
+                    "commit", "-m", f"Apply system themes for: {theme_name}"
+                )
+        else:
             logger.warning("theme not found")
             raise ThemeNotFound(theme_name)
 
-        ##==> Apply all configs
-        ##################################
-        merge = MergeCopyHandler(theme=theme)
-        merge.apply_for_all_configs()
+    def _apply_system_themes(self, theme: Theme):
+        """Применяем системные темы (GTK, иконки, обои)"""
+        logger.info("Applying system themes (GTK, icons, wallpapers)")
 
-        ##==> Apply GTK theme
+        ##==> Apply GTK theme (только если существует)
         ##################################
-        GTKThemeApplier().apply(theme)
+        if theme.gtk_folder.exists():
+            logger.info("Applying GTK theme")
+            GTKThemeApplier().apply(theme)
+        else:
+            logger.info("GTK theme not found in this version, skipping")
 
-        ##==> Apply Icon theme
+        ##==> Apply Icon theme (только если существует)
         ##################################
-        IconThemeApplier().apply(theme)
+        if theme.icons_folder.exists():
+            logger.info("Applying icon theme")
+            IconThemeApplier().apply(theme)
+        else:
+            logger.info("Icon theme not found in this version, skipping")
+
+        ##==> Apply Cursor theme (если присутствует)
+        ##################################
+        if theme.icons_folder.exists() and (theme.icons_folder / "cursors").exists():
+            logger.info("Applying cursor theme")
+            CursorThemeApplier().apply(theme)
+        else:
+            logger.info("Cursor theme not found in this version, skipping")
 
         ##==> Apply wallpapers
         ##################################
-        theme.wallpapers_folder.mkdir(parents=True, exist_ok=True)
-        create_symlink_dir(
-            target=theme.wallpapers_folder, link=cnst.THEME_WALLPAPERS_SYMLINK
-        )
+        if theme.wallpapers_folder.exists():
+            theme.wallpapers_folder.mkdir(parents=True, exist_ok=True)
+            create_symlink_dir(
+                target=theme.wallpapers_folder, link=cnst.THEME_WALLPAPERS_SYMLINK
+            )
+        else:
+            if cnst.THEME_WALLPAPERS_SYMLINK.exists():
+                if cnst.THEME_WALLPAPERS_SYMLINK.is_symlink():
+                    cnst.THEME_WALLPAPERS_SYMLINK.unlink()
+                elif cnst.THEME_WALLPAPERS_SYMLINK.is_dir():
+                    shutil.rmtree(cnst.THEME_WALLPAPERS_SYMLINK)
+
+    def restore_original(self) -> None:
+        """Возврат к базовому состоянию с сохранением пользовательских изменений"""
+        logger.debug("=== RESTORE ORIGINAL ===")
+
+        # Используем селективный менеджер для восстановления
+        self.selective_manager.restore_original()
+
+
+    def get_current_theme_name(self) -> str | None:
+        """Get current theme name from selective manager"""
+        try:
+            return self.selective_manager.get_current_theme()
+        except Exception as e:
+            logger.error(f"Error getting current theme: {e}")
+            return None

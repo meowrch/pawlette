@@ -24,7 +24,6 @@ APP_DATA_DIR = XDG_DATA_HOME / APPLICATION_NAME
 APP_CACHE_DIR = XDG_CACHE_HOME / APPLICATION_NAME
 APP_STATE_DIR = XDG_STATE_HOME / APPLICATION_NAME
 
-APP_BACKUP_DIR = APP_STATE_DIR / "backups"
 APP_CONFIG_FILE = APP_CONFIG_DIR / (APPLICATION_NAME + ".json")
 VERSIONS_FILE = APP_STATE_DIR / "installed_themes.json"
 THEMES_FOLDER = APP_DATA_DIR / "themes"
@@ -65,8 +64,14 @@ COMMENT_FORMATS = {
 
 ##==> Стандартная конфигурация
 DEFAULT_CONFIG = {
-    "max_backups": 5,
     "comment_styles": COMMENT_FORMATS,
+    "logging": {
+        "enable_console": False,
+        "console_level": "INFO",
+        "file_level": "DEBUG",
+        "journal_level": "INFO",
+        "enable_colors": True,
+    },
 }
 
 

@@ -9,15 +9,16 @@ import pawlette.constants as cnst
 from pawlette.schemas.commands import CommandInfo
 from pawlette.schemas.themes import Theme
 
-from .backup import BackupSystem
 from .patch_engine import PatchEngine
+from pawlette.schemas.config_struct import Config
 
 
 class MergeCopyHandler:
-    __slots__ = "theme"
+    __slots__ = "theme", "config"
 
-    def __init__(self, theme: Theme) -> None:
+    def __init__(self, theme: Theme, config: Config) -> None:
         self.theme: Theme = theme
+        self.config: Config = config
 
     def apply_for_all_configs(self):
         for app in (self.theme.path / "configs").iterdir():
@@ -111,6 +112,7 @@ class MergeCopyHandler:
                 PatchEngine.apply_to_file(
                     theme_name=self.theme.name,
                     target_file=dst,
+                    config=self.config,
                     pre_content=p["pre"],
                     post_content=p["post"],
                 )
@@ -119,9 +121,6 @@ class MergeCopyHandler:
 
     def _smart_copy(self, src: Path, dst: Path):
         """Интеллектуальное копирование с проверкой хэшей"""
-        if dst.exists():
-            BackupSystem.create_backup(dst)
-
         if not dst.exists() or self._files_differ(src, dst):
             shutil.copy2(src, dst)
 
