@@ -265,9 +265,9 @@ class SelectiveThemeManager:
             logger.debug(f"Switching to existing branch: {theme_name}")
             self._run_git("checkout", theme_name)
         else:
-            # Создаем новую ветку
-            logger.debug(f"Creating new branch: {theme_name}")
-            self._run_git("checkout", "-b", theme_name)
+            # Создаем новую ветку от базовой ветки main
+            logger.debug(f"Creating new branch: {theme_name} from main")
+            self._run_git("checkout", "-b", theme_name, "main")
 
     def _handle_uncommitted_changes(self):
         """Обрабатываем uncommitted изменения перед переключением ветки"""
