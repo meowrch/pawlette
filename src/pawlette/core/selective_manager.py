@@ -355,15 +355,28 @@ class SelectiveThemeManager:
         # Сначала переключаемся на ветку темы, чтобы проверить её состояние
         self._create_or_switch_branch(theme_name)
 
+        # Проверяем, была ли тема реально применена (есть ли коммит темы в истории)
+        has_theme_commit = self._has_theme_commit_in_branch(theme_name)
+        
         # Теперь проверяем версию в контексте этой ветки
         current_version = self._get_saved_theme_version_in_branch(theme_name)
-        if current_version == new_version:
+        
+        # Тема считается применённой только если:
+        # 1. Версия совпадает
+        # 2. И есть коммит темы в истории git
+        if current_version == new_version and has_theme_commit:
             logger.info(
                 f"Theme {theme_name} v{new_version} already applied, just switched branch"
             )
             # Выполняем команды перезагрузки даже при простом переключении веток
             self._execute_reload_commands(theme)
             return
+        
+        # Если версия совпадает, но нет коммита - значит .version файл остался после удаления репозитория
+        if current_version == new_version and not has_theme_commit:
+            logger.warning(
+                f"Theme {theme_name} version file exists but no git commit found. Re-applying theme."
+            )
 
         need_copy_files = (
             True  # Всегда копируем файлы при переключении или изменении версии
@@ -395,10 +408,6 @@ class SelectiveThemeManager:
             for file_path in theme_files:
                 if file_path.exists():
                     self._run_git("add", str(file_path))
-
-            # Добавляем файл версии в коммит
-            version_file = self.state_dir / f"{theme_name}.version"
-            self._run_git("add", str(version_file))
 
             # Добавляем все измененные файлы (которые были модифицированы в процессе применения темы)
             # Это включает файлы, которые были изменены в процессе копирования и патчинга
@@ -470,6 +479,29 @@ class SelectiveThemeManager:
                     )
 
 
+
+    def _has_theme_commit_in_branch(self, theme_name: str) -> bool:
+        """Проверяем, есть ли хотя бы один коммит применения темы в ветке"""
+        try:
+            # Проверяем историю коммитов в текущей ветке
+            result = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(self.git_repo),
+                    "log",
+                    "--oneline",
+                    "--grep",
+                    f"Apply theme: {theme_name}",
+                    "-1",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            # Если нашёл коммит, то вернём True
+            return bool(result.stdout.strip())
+        except subprocess.CalledProcessError:
+            return False
 
     def _save_theme_version(self, theme_name: str, version: str):
         """Сохраняем версию темы в state_dir"""
