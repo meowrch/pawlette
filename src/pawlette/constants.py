@@ -38,7 +38,7 @@ ICON_THEME_SYMLINK_DIR = (Path.home() / ".icons").absolute()
 
 ##==> Ссылка на список официальных тем
 THEMES_LIST_URL = (
-    "https://raw.githubusercontent.com/meowrch/meowrch-themes/main/themes.list"
+    "https://raw.githubusercontent.com/meowrch/pawlette-themes/main/themes.list"
 )
 
 
