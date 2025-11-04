@@ -170,6 +170,44 @@ class ThemeManager:
         # Используем селективный менеджер для восстановления
         self.selective_manager.restore_original()
 
+    def reset_theme_to_clean(self, theme_name: str) -> None:
+        """Сбрасывает тему к чистому состоянию, удаляя пользовательские изменения.
+
+        Работает только в селективном режиме: откатывает ТОЛЬКО файлы этой темы
+        к состоянию последнего применения (HEAD), не трогая другие конфиги.
+        """
+        if not self.use_selective:
+            logger.warning("reset-theme is only available in selective mode")
+            return
+
+        # Проверяем, что тема существует
+        theme = ThemeManager.get_theme(theme_name)
+        if not theme:
+            logger.warning("theme not found")
+            raise ThemeNotFound(theme_name)
+
+        # Переключаемся на ветку темы (создастся если нужно)
+        self.selective_manager._create_or_switch_branch(theme_name)
+
+        # Получаем список затронутых файлов этой темы в ~/.config
+        theme_files = self.selective_manager._get_theme_files(theme)
+
+        # Откатываем изменения только для файлов этой темы
+        for file_path in theme_files:
+            try:
+                rel = file_path.relative_to(self.selective_manager.config_dir)
+            except ValueError:
+                # Вне рабочей директории git — пропускаем
+                continue
+
+            # Пытаемся использовать современную команду restore; если не поддерживается — fallback на checkout
+            ok = self.selective_manager._run_git(
+                "restore", "--worktree", "--staged", "--source=HEAD", str(rel)
+            )
+            if not ok:
+                self.selective_manager._run_git("checkout", "--", str(rel))
+
+        logger.info(f"Theme '{theme_name}' reset to clean state")
 
     def get_current_theme_name(self) -> str | None:
         """Get current theme name from selective manager"""
