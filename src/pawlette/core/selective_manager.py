@@ -233,8 +233,8 @@ class SelectiveThemeManager:
                     relative_path = file_path.relative_to(config_app_dir)
                     target_file = target_dir / relative_path
 
-                    # Для патчей (.postpaw, .prepaw) ищем целевой файл
-                    if file_path.suffix in [".postpaw", ".prepaw"]:
+                    # Для патчей (.postpaw, .prepaw, .jsonpaw) ищем целевой файл
+                    if file_path.suffix in [".postpaw", ".prepaw", ".jsonpaw"]:
                         target_file = target_dir / relative_path.with_suffix("")
 
                     if target_file.exists() and not self._is_file_ignored(target_file):

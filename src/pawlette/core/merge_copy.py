@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 import traceback
@@ -65,6 +66,16 @@ class MergeCopyHandler:
                     return
             self.run_command(command.command)
 
+    def _merge_dicts(self, base: dict, override: dict) -> dict:
+        """Глубокое слияние словарей с приоритетом override"""
+        result = dict(base)
+        for k, v in override.items():
+            if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+                result[k] = self._merge_dicts(result[k], v)
+            else:
+                result[k] = v
+        return result
+
     def _merge_and_patch(self, src: Path, dst: Path):
         """Рекурсивное копирование с обработкой патчей"""
         patching = {}
@@ -88,6 +99,7 @@ class MergeCopyHandler:
                         "dst": dest_path.with_suffix(""),
                         "pre": content,
                         "post": None,
+                        "merge": None,
                     }
             elif item.suffix == ".postpaw":
                 with open(item) as f:
@@ -101,23 +113,69 @@ class MergeCopyHandler:
                         "dst": dest_path.with_suffix(""),
                         "pre": None,
                         "post": content,
+                        "merge": None,
+                    }
+            elif item.suffix == ".jsonpaw":
+                # JSON merge-патч
+                try:
+                    with open(item) as f:
+                        merge_data = json.load(f)
+                except Exception as e:
+                    logger.warning(f"Invalid JSON in merge patch {item}: {e}")
+                    continue
+
+                patch_name = item.with_suffix("").name
+                if patch_name in patching:
+                    patching[patch_name]["merge"] = merge_data
+                else:
+                    patching[patch_name] = {
+                        "dst": dest_path.with_suffix(""),
+                        "pre": None,
+                        "post": None,
+                        "merge": merge_data,
                     }
             else:
                 self._smart_copy(item, dest_path)
 
         for p in patching.values():
-            dst: Path = p["dst"]
-            if dst.exists():
-                logger.info(f"Patching file: {dst}")
+            dst_file: Path = p["dst"]
+            if not dst_file.exists():
+                logger.info(f"There is no original file for the patch {dst_file}")
+                continue
+
+            # Сначала применяем JSON merge (если есть)
+            if p.get("merge") is not None:
+                try:
+                    with open(dst_file) as f:
+                        current = json.load(f)
+                    if not isinstance(current, dict):
+                        raise ValueError("Target JSON is not an object")
+                except Exception as e:
+                    logger.warning(
+                        f"Cannot read/parse target JSON {dst_file}: {e}. Skipping merge for this file"
+                    )
+                else:
+                    if isinstance(p["merge"], dict):
+                        merged = self._merge_dicts(current, p["merge"])
+                        with open(dst_file, "w", encoding="utf-8") as f:
+                            json.dump(merged, f, ensure_ascii=False, indent=2)
+                            f.write("\n")
+                        logger.info(f"Merged JSON into: {dst_file}")
+                    else:
+                        logger.warning(
+                            f"Merge patch for {dst_file} is not a JSON object, skipping"
+                        )
+
+            # Затем применяем PRE/POST патчи
+            if p.get("pre") or p.get("post"):
+                logger.info(f"Patching file: {dst_file}")
                 PatchEngine.apply_to_file(
                     theme_name=self.theme.name,
-                    target_file=dst,
+                    target_file=dst_file,
                     config=self.config,
-                    pre_content=p["pre"],
-                    post_content=p["post"],
+                    pre_content=p.get("pre"),
+                    post_content=p.get("post"),
                 )
-            else:
-                logger.info(f"There is no original file for the patch {dst}")
 
     def _smart_copy(self, src: Path, dst: Path):
         """Интеллектуальное копирование с проверкой хэшей"""
