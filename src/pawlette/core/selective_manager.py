@@ -41,7 +41,7 @@ class SelectiveThemeManager:
         if not (self.git_repo / "HEAD").exists():
             logger.debug("Initializing git repository")
             self.git_repo.mkdir(parents=True, exist_ok=True)
-            self._run_git("init", "--bare")
+            self._run_git("init", "--bare", "--initial-branch=main")
             self._run_git("config", "core.bare", "false")
             self._run_git("config", "core.worktree", str(self.config_dir))
             self._run_git("config", "user.name", "Pawlette")
@@ -357,10 +357,10 @@ class SelectiveThemeManager:
 
         # Проверяем, была ли тема реально применена (есть ли коммит темы в истории)
         has_theme_commit = self._has_theme_commit_in_branch(theme_name)
-        
+
         # Теперь проверяем версию в контексте этой ветки
         current_version = self._get_saved_theme_version_in_branch(theme_name)
-        
+
         # Тема считается применённой только если:
         # 1. Версия совпадает
         # 2. И есть коммит темы в истории git
@@ -371,15 +371,19 @@ class SelectiveThemeManager:
             # Выполняем команды перезагрузки даже при простом переключении веток
             self._execute_reload_commands(theme)
             return
-        
+
         # Если версия совпадает, но нет коммита - значит .version файл остался после удаления репозитория
         if current_version == new_version and not has_theme_commit:
             logger.warning(
                 f"Theme {theme_name} version file exists but no git commit found. Re-applying theme."
             )
-        
+
         # Если версия изменилась и ветка существует - создаём бэкап старой ветки
-        if current_version != new_version and current_version != "unknown" and has_theme_commit:
+        if (
+            current_version != new_version
+            and current_version != "unknown"
+            and has_theme_commit
+        ):
             self._backup_and_recreate_branch(theme_name, current_version)
 
         need_copy_files = (
@@ -482,8 +486,6 @@ class SelectiveThemeManager:
                         f"Error executing reload command for {app_name}: {e}"
                     )
 
-
-
     def _has_theme_commit_in_branch(self, theme_name: str) -> bool:
         """Проверяем, есть ли хотя бы один коммит применения темы в ветке"""
         try:
@@ -510,31 +512,29 @@ class SelectiveThemeManager:
     def _backup_and_recreate_branch(self, theme_name: str, old_version: str):
         """Создаём бэкап старой ветки и пересоздаём ветку темы от main"""
         import datetime
-        
+
         # Сохраняем uncommitted изменения если есть
         self._handle_uncommitted_changes()
-        
+
         # Создаём имя бэкапа с версией и временной меткой
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         backup_branch_name = f"{theme_name}-v{old_version}-backup-{timestamp}"
-        
+
         logger.info(f"Creating backup of old theme version: {backup_branch_name}")
-        
+
         # Переименовываем текущую ветку в бэкап
         self._run_git("branch", "-m", theme_name, backup_branch_name)
-        
+
         # Переключаемся на main
         self._run_git("checkout", "main")
-        
+
         # Создаём новую чистую ветку от main
         logger.info(f"Creating fresh branch: {theme_name} from main")
         self._run_git("checkout", "-b", theme_name, "main")
-        
+
+        logger.info(f"⚠️  Theme update: old version backed up to '{backup_branch_name}'")
         logger.info(
-            f"⚠️  Theme update: old version backed up to '{backup_branch_name}'"
-        )
-        logger.info(
-            f"📄 You can restore your customizations from the backup branch if needed"
+            "📄 You can restore your customizations from the backup branch if needed"
         )
 
     def _save_theme_version(self, theme_name: str, version: str):
@@ -551,7 +551,6 @@ class SelectiveThemeManager:
         if version_file.exists():
             return version_file.read_text().strip()
         return "unknown"
-
 
     def _get_theme_version_from_installed(self, theme_name: str) -> str:
         """Получаем версию темы из installed_themes.json"""
@@ -582,7 +581,6 @@ class SelectiveThemeManager:
         except Exception as e:
             logger.error(f"Failed to read installed_themes.json: {e}")
             return "unknown"
-
 
     def restore_user_commit(self, theme_name: str, commit_hash: str):
         """Восстанавливаем пользовательские изменения из коммита"""
@@ -616,7 +614,6 @@ class SelectiveThemeManager:
             return branch if branch != "main" else None
         except subprocess.CalledProcessError:
             return None
-
 
     def has_uncommitted_changes(self) -> bool:
         """Проверяем, есть ли uncommitted изменения"""
@@ -705,8 +702,6 @@ class SelectiveThemeManager:
                 return Theme(name=theme_name, path=p)
         return None
 
-
-
     def restore_original(self):
         """Возвращаем к базовому/оригинальному состоянию (main ветка)"""
         logger.info("Restoring to original state")
@@ -744,24 +739,24 @@ class SelectiveThemeManager:
         if "-backup-" not in branch_name:
             logger.error(f"Cannot delete non-backup branch: {branch_name}")
             return False
-        
+
         logger.info(f"Deleting backup branch: {branch_name}")
         return self._run_git("branch", "-D", branch_name)
 
     def cleanup_old_backups(self, theme_name: str | None = None, keep_last: int = 3):
         """Удаляем старые бэкапы, оставляя только последние N"""
         backups = self.list_backup_branches()
-        
+
         # Фильтруем по имени темы если указано
         if theme_name:
             backups = [b for b in backups if b.startswith(f"{theme_name}-")]
-        
+
         # Сортируем по временной метке (новые в начале)
         backups.sort(reverse=True)
-        
+
         # Удаляем всё кроме последних N
         for backup in backups[keep_last:]:
             self.delete_backup_branch(backup)
-        
+
         if len(backups) > keep_last:
             logger.info(f"Cleaned up {len(backups) - keep_last} old backup(s)")
