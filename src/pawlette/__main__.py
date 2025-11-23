@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import argparse
+import json
 
 from loguru import logger
 
 import pawlette.constants as cnst
 from pawlette.common.setup_loguru import setup_loguru
-from pawlette.config import generate_default_config, load_config
+from pawlette.config import generate_default_config
+from pawlette.config import load_config
 from pawlette.core.manager import ThemeManager
 
 
@@ -97,13 +99,13 @@ def configure_argparser() -> argparse.ArgumentParser:
         "theme_name",
         type=str,
         nargs="?",
-        help="Name of theme to show history for (current theme if not specified)"
+        help="Name of theme to show history for (current theme if not specified)",
     )
     history_parser.add_argument(
         "--limit",
         type=int,
         default=10,
-        help="Maximum number of commits to show (default: 10)"
+        help="Maximum number of commits to show (default: 10)",
     )
 
     # Show user changes info
@@ -114,7 +116,7 @@ def configure_argparser() -> argparse.ArgumentParser:
         "theme_name",
         type=str,
         nargs="?",
-        help="Name of theme to check (current theme if not specified)"
+        help="Name of theme to check (current theme if not specified)",
     )
 
     # Restore specific commit
@@ -128,12 +130,10 @@ def configure_argparser() -> argparse.ArgumentParser:
         "theme_name",
         type=str,
         nargs="?",
-        help="Name of theme (current theme if not specified)"
+        help="Name of theme (current theme if not specified)",
     )
 
     return parser
-
-
 
 
 def main() -> None:
@@ -170,10 +170,9 @@ def main() -> None:
             themes = manager.get_all_themes()
             print("\n".join([i.name for i in themes]))
         case "get-available-themes":
-            print(manager.installer.fetch_available_themes())
+            print(json.dumps(manager.installer.fetch_available_themes()))
         case "get-themes-info":
-            info = manager.get_all_themes_info()
-            print(info)
+            print(json.dumps(manager.get_all_themes_info()))
         case "install-theme":
             if args.theme_name:
                 manager.installer.install_theme(args.theme_name)
@@ -204,7 +203,9 @@ def main() -> None:
                     print(f"Current theme: {current_theme}")
                     changes_info = manager.selective_manager.get_user_changes_info()
                     if changes_info["has_changes"]:
-                        print(f"⚠️  You have {len(changes_info['files'])} uncommitted changes")
+                        print(
+                            f"⚠️  You have {len(changes_info['files'])} uncommitted changes"
+                        )
                         print("Modified files:")
                         for file in changes_info["files"][:5]:  # Show first 5 files
                             print(f"  - {file}")
@@ -236,11 +237,22 @@ def main() -> None:
 
             # Get all commits for this theme branch
             import subprocess
+
             try:
-                result = subprocess.run([
-                    "git", "-C", str(manager.selective_manager.git_repo),
-                    "log", "--oneline", f"--max-count={args.limit}", theme_name
-                ], capture_output=True, text=True, check=True)
+                result = subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(manager.selective_manager.git_repo),
+                        "log",
+                        "--oneline",
+                        f"--max-count={args.limit}",
+                        theme_name,
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
 
                 if result.stdout.strip():
                     for line in result.stdout.strip().split("\n"):
@@ -274,7 +286,9 @@ def main() -> None:
                 print(f"Found {len(changes_info['files'])} modified files:")
                 for file in changes_info["files"]:
                     print(f"  📝 {file}")
-                print("\n💡 These changes will be automatically saved when you switch themes")
+                print(
+                    "\n💡 These changes will be automatically saved when you switch themes"
+                )
             else:
                 print("✅ No uncommitted changes found")
         case "restore-commit":
@@ -288,8 +302,12 @@ def main() -> None:
                 return
 
             try:
-                manager.selective_manager.restore_user_commit(theme_name, args.commit_hash)
-                print(f"✅ Successfully restored commit {args.commit_hash} for theme {theme_name}")
+                manager.selective_manager.restore_user_commit(
+                    theme_name, args.commit_hash
+                )
+                print(
+                    f"✅ Successfully restored commit {args.commit_hash} for theme {theme_name}"
+                )
             except Exception as e:
                 print(f"❌ Failed to restore commit: {e}")
         case _:
