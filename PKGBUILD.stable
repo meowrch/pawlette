@@ -10,6 +10,7 @@ url="https://github.com/meowrch/pawlette"
 license=('GPL-3.0')
 depends=('python')
 makedepends=('python-uv' 'python-virtualenv' 'git')
+options=('!debug')
 source=("$url/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')  # Автоматическая замена в workflow
 
