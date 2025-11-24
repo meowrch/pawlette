@@ -172,7 +172,7 @@ def main() -> None:
         case "get-available-themes":
             print(json.dumps(manager.installer.fetch_available_themes()))
         case "get-themes-info":
-            print(json.dumps(manager.get_all_themes_info()))
+            print(manager.get_all_themes_info())
         case "install-theme":
             if args.theme_name:
                 manager.installer.install_theme(args.theme_name)
