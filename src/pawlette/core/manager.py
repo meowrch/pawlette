@@ -12,9 +12,10 @@ from pawlette.schemas.themes import Theme
 
 from .installer import Installer
 from .selective_manager import SelectiveThemeManager
+from .system_theme_appliers import CursorThemeApplier
 from .system_theme_appliers import GTKThemeApplier
 from .system_theme_appliers import IconThemeApplier
-from .system_theme_appliers import CursorThemeApplier
+from .wm_reloader import WMReloader
 
 
 class ThemeManager:
@@ -117,6 +118,9 @@ class ThemeManager:
                 self.selective_manager._run_git(
                     "commit", "-m", f"Apply system themes for: {theme_name}"
                 )
+
+            # Перезагружаем WM для применения изменений
+            WMReloader.reload_current_wm()
         else:
             logger.warning("theme not found")
             raise ThemeNotFound(theme_name)
