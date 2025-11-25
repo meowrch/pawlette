@@ -175,7 +175,7 @@ class BaseThemeApplier:
         theme_link = self.symlink_dir / theme_name
 
         # Создаём стандартную папку с gtk темами, если её не было
-        self.symlink_dir.mkdir(parents=True, exist_ok=True) 
+        self.symlink_dir.mkdir(parents=True, exist_ok=True)
 
         if create_symlink_dir(theme_folder.absolute(), theme_link):
             return theme_folder
@@ -478,12 +478,40 @@ Inherits={theme_name}
         else:
             return False
 
+    def _ensure_xdg_local_cursors_link(self, theme: Theme, theme_name: str) -> None:
+        """Создает ссылку ~/.local/share/icons/<theme_name>/cursors -> <icons_folder>/cursors.
+        Нужна для X11 WM (например, bspwm), которые ищут курсоры только в XDG_DATA_HOME/icons.
+        """
+        cursor_dir = theme.icons_folder / "cursors"
+        if not cursor_dir.exists():
+            logger.debug(
+                f"Cursor directory not found for theme {theme.name}: {cursor_dir}"
+            )
+            return
+
+        local_icons_root = cnst.XDG_DATA_HOME / "icons"
+        target_theme_dir = local_icons_root / theme_name
+
+        try:
+            target_theme_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.error(
+                f"Ошибка создания директории для локальной темы курсора {target_theme_dir}: {e}"
+            )
+            return
+
+        link_path = target_theme_dir / "cursors"
+        create_symlink_dir(cursor_dir.absolute(), link_path)
+
     def apply(self, theme: Theme) -> None:
         """Применяет тему курсора как pawlette-<theme> при наличии иконок"""
         self.cleanup(theme.name)
         # Иконки могли быть уже залинкованы, повторная операция безопасна
         self._setup_symlink(theme)
         theme_name = f"pawlette-{theme.name}"
+
+        # В некоторых X11 WM (например, bspwm) курсоры ищутся в ~/.local/share/icons
+        self._ensure_xdg_local_cursors_link(theme, theme_name)
 
         # Обновляем конфиги
         for config in [cnst.GTK2_CFG, cnst.GTK3_CFG, cnst.GTK4_CFG]:
