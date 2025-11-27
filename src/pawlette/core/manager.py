@@ -49,26 +49,39 @@ class ThemeManager:
 
         return list(themes.values())
 
-    @staticmethod
-    def get_all_themes_info() -> str:
-        """This method returns JSON with the paths to the theme itself,
-        logo, wallpaper and theme gtk for each theme
+    def get_all_themes_info(self) -> str:
+        """Возвращает JSON с информацией по всем найденным темам.
 
-        Returns:
-            str: JSON with the params of theme
+        Включает пути к теме, пометку источника (official/community/local)
+        и установленную версию (если известна).
         """
         themes = ThemeManager.get_all_themes()
-        return json.dumps(
-            {
-                i.name: {
-                    "path": str(i.path),
-                    "logo": str(i.theme_logo),
-                    "wallpapers": str(i.wallpapers_folder),
-                    "gtk-folder": str(i.gtk_folder),
-                }
-                for i in themes
+
+        installed_info = self.installer.installed_themes
+
+        result: dict[str, dict[str, str | None]] = {}
+        for theme in themes:
+            if theme.name in installed_info and installed_info[theme.name].source:
+                source = installed_info[theme.name].source.value  # type: ignore[union-attr]
+            else:
+                source = "local"
+
+            version = (
+                installed_info[theme.name].version
+                if theme.name in installed_info
+                else None
+            )
+
+            result[theme.name] = {
+                "path": str(theme.path),
+                "logo": str(theme.theme_logo),
+                "wallpapers": str(theme.wallpapers_folder),
+                "gtk-folder": str(theme.gtk_folder),
+                "source": source,
+                "version": version,
             }
-        )
+
+        return json.dumps(result, indent=2, ensure_ascii=False)
 
     @staticmethod
     def get_theme(theme_name: str) -> Theme | None:

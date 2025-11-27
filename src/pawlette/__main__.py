@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import sys
 
 from loguru import logger
 
@@ -25,10 +26,16 @@ def configure_argparser() -> argparse.ArgumentParser:
     # get themes
     subparsers.add_parser("get-themes", help="List all installed themes")
 
-    # get available themes
+    # get themes available in remote store (not necessarily installed)
+    subparsers.add_parser(
+        "get-store-themes",
+        help="JSON with all themes available in the remote store",
+    )
+
+    # backward-compat: old name (deprecated)
     subparsers.add_parser(
         "get-available-themes",
-        help="JSON with all available themes with url for download",
+        help="[DEPRECATED] Use 'get-store-themes' instead",
     )
 
     # get themes info
@@ -42,6 +49,11 @@ def configure_argparser() -> argparse.ArgumentParser:
     )
     install_theme_parser.add_argument(
         "theme_name", type=str, help="Name of theme to install"
+    )
+    install_theme_parser.add_argument(
+        "--skip-warning",
+        action="store_true",
+        help="Skip confirmation for community themes (for scripts)",
     )
 
     # Update theme
@@ -169,13 +181,32 @@ def main() -> None:
         case "get-themes":
             themes = manager.get_all_themes()
             print("\n".join([i.name for i in themes]))
-        case "get-available-themes":
-            print(json.dumps(manager.installer.fetch_available_themes()))
+        case "get-store-themes" | "get-available-themes":
+            # JSON: name -> {url, source, installed}
+            if args.command == "get-available-themes":
+                print(
+                    "WARNING: 'get-available-themes' is deprecated, use 'get-store-themes' instead.",
+                    file=sys.stderr,
+                )
+            remote_themes = manager.installer.fetch_remote_themes()
+            installed = manager.installer.installed_themes
+            data = {
+                name: {
+                    "url": theme.url,
+                    "source": theme.source.value,
+                    "installed": name in installed,
+                }
+                for name, theme in remote_themes.items()
+            }
+            print(json.dumps(data, indent=2, ensure_ascii=False))
         case "get-themes-info":
             print(manager.get_all_themes_info())
         case "install-theme":
             if args.theme_name:
-                manager.installer.install_theme(args.theme_name)
+                manager.installer.install_theme(
+                    args.theme_name,
+                    skip_warning=getattr(args, "skip_warning", False),
+                )
         case "update-theme":
             if args.theme_name:
                 manager.installer.update_theme(args.theme_name)

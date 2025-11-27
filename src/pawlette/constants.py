@@ -36,10 +36,11 @@ THEME_WALLPAPERS_SYMLINK = APP_DATA_DIR / "theme_wallpapers"
 GTK_THEME_SYMLINK_DIR = (Path.home() / ".themes").absolute()
 ICON_THEME_SYMLINK_DIR = (Path.home() / ".icons").absolute()
 
-##==> Ссылка на список официальных тем
-THEMES_LIST_URL = (
+##==> Ссылки на списки тем
+OFFICIAL_THEMES_LIST_URL = (
     "https://raw.githubusercontent.com/meowrch/pawlette-themes/main/themes.list"
 )
+COMMUNITY_THEMES_LIST_URL = "https://raw.githubusercontent.com/meowrch/pawlette-themes/main/community-themes.list"
 
 
 ##==> Команды перезагрузки для приложений

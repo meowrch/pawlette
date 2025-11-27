@@ -1,4 +1,5 @@
 from pathlib import Path
+from enum import Enum
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -26,9 +27,20 @@ class Theme(BaseModel):
             self.theme_logo = DEFAULT_THEME_LOGO
 
 
+class ThemeSource(Enum):
+    OFFICIAL = "official"
+    COMMUNITY = "community"
+
+
+class RemoteTheme(BaseModel):
+    name: str
+    url: str
+    source: ThemeSource
+
 
 class InstalledThemeInfo(BaseModel):
     name: str
     version: str
     source_url: str
     installed_path: Path
+    source: ThemeSource | None = None
