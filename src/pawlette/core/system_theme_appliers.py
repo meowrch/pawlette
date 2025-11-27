@@ -182,14 +182,26 @@ class BaseThemeApplier:
         return None
 
     def cleanup(self, theme_name: str) -> None:
-        """Очищает симлинки темы"""
-        theme_link = self.symlink_dir / f"pawlette-{theme_name}"
-        if theme_link.exists():
-            logger.debug(f"Removing symlink: {theme_link}")
-            if theme_link.is_symlink():
-                theme_link.unlink()
-            elif theme_link.is_dir():
-                shutil.rmtree(theme_link)
+        """Очищает симлинки темы.
+
+        Поддерживает оба варианта имени:
+        - <theme_name>
+        - pawlette-<theme_name>
+        чтобы не зависеть от того, как был передан параметр.
+        """
+        candidates = {
+            theme_name,
+            f"pawlette-{theme_name}",
+        }
+
+        for name in candidates:
+            theme_link = self.symlink_dir / name
+            if theme_link.exists():
+                logger.debug(f"Removing symlink: {theme_link}")
+                if theme_link.is_symlink():
+                    theme_link.unlink()
+                elif theme_link.is_dir():
+                    shutil.rmtree(theme_link)
 
     def apply(self, theme: Theme) -> None:
         """Основной метод применения темы"""
@@ -502,6 +514,27 @@ Inherits={theme_name}
 
         link_path = target_theme_dir / "cursors"
         create_symlink_dir(cursor_dir.absolute(), link_path)
+
+    def cleanup(self, theme_name: str) -> None:
+        """Очищает симлинки темы курсора (в ~/.icons и ~/.local/share/icons)."""
+        # Удаляем стандартные симлинки в ~/.icons
+        super().cleanup(theme_name)
+
+        # Удаляем дополнительную ссылку ~/.local/share/icons/<theme_name>/cursors
+        try:
+            theme_link_name = f"pawlette-{theme_name}"
+            local_icons_root = cnst.XDG_DATA_HOME / "icons"
+            candidates = [
+                local_icons_root / theme_link_name / "cursors",
+                local_icons_root / theme_name / "cursors",
+            ]
+            for link_path in candidates:
+                if link_path.exists():
+                    logger.debug(f"Removing cursor link: {link_path}")
+                    if link_path.is_symlink():
+                        link_path.unlink()
+        except Exception as e:
+            logger.warning(f"Failed to cleanup XDG local cursor links for {theme_name}: {e}")
 
     def apply(self, theme: Theme) -> None:
         """Применяет тему курсора как pawlette-<theme> при наличии иконок"""

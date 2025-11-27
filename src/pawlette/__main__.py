@@ -45,15 +45,18 @@ def configure_argparser() -> argparse.ArgumentParser:
 
     # Install theme
     install_theme_parser = subparsers.add_parser(
-        "install-theme", help="Install theme from official repository pawlette-themes"
+        "install-theme",
+        help="Install theme by name from the store, from archive URL or from local archive file",
     )
     install_theme_parser.add_argument(
-        "theme_name", type=str, help="Name of theme to install"
+        "theme_name",
+        type=str,
+        help="Theme name, direct archive URL or local archive path",
     )
     install_theme_parser.add_argument(
         "--skip-warning",
         action="store_true",
-        help="Skip confirmation for community themes (for scripts)",
+        help="Skip confirmation for community themes from remote store (for scripts)",
     )
 
     # Update theme
@@ -62,6 +65,14 @@ def configure_argparser() -> argparse.ArgumentParser:
     )
     update_theme_parser.add_argument(
         "theme_name", type=str, help="Name of theme to update"
+    )
+
+    # Remove theme
+    uninstall_theme_parser = subparsers.add_parser(
+        "uninstall-theme", help="Remove installed theme from local storage"
+    )
+    uninstall_theme_parser.add_argument(
+        "theme_name", type=str, help="Name of theme to remove"
     )
 
     # Update all themes
@@ -210,6 +221,42 @@ def main() -> None:
         case "update-theme":
             if args.theme_name:
                 manager.installer.update_theme(args.theme_name)
+        case "uninstall-theme":
+            if args.theme_name:
+                theme_name = args.theme_name
+                current_theme = manager.get_current_theme_name()
+                if current_theme == theme_name:
+                    print(
+                        f"Theme '{theme_name}' is currently active.\n"
+                        "You must switch to another theme or restore the base state "
+                        "before uninstalling it."
+                    )
+                    return
+
+                print()
+                print(f"You are about to completely uninstall theme '{theme_name}'.")
+                print("This will remove:")
+                print("  - theme files in ~/.local/share/pawlette/themes")
+                if manager.use_selective:
+                    print("  - the git branch with your user changes for this theme")
+                print("  - GTK and icon symlinks in ~/.themes and ~/.icons")
+                print()
+                print(
+                    "Make sure you have saved or migrated any important configuration "
+                    "before continuing."
+                )
+                print()
+                confirmation = input(
+                    f"To confirm uninstallation, type the theme name '{theme_name}': "
+                ).strip()
+                if confirmation != theme_name:
+                    print(
+                        "Confirmation does not match theme name. "
+                        "Uninstallation cancelled."
+                    )
+                    return
+
+                manager.uninstall_theme(theme_name)
         case "update-all-themes":
             manager.installer.update_all_themes()
         case "set-theme" | "apply":

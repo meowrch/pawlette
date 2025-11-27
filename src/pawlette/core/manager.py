@@ -233,3 +233,28 @@ class ThemeManager:
         except Exception as e:
             logger.error(f"Error getting current theme: {e}")
             return None
+
+    def uninstall_theme(self, theme_name: str) -> None:
+        """Полностью удаляет тему: файлы, кэш, git‑ветку и системные симлинки."""
+        # 1. Удаляем саму тему и её кэш (каталог, installed_themes.json, .version)
+        self.installer.uninstall_theme(theme_name)
+
+        # 2. Удаляем git‑ветку темы в селективном менеджере (если включен)
+        if self.use_selective:
+            try:
+                deleted = self.selective_manager.delete_theme_branch(theme_name)
+                if deleted:
+                    logger.info(f"Deleted git branch for theme '{theme_name}'")
+            except Exception as e:
+                logger.error(f"Failed to delete git branch for theme '{theme_name}': {e}")
+
+        # 3. Очищаем системные симлинки GTK/иконок/курсора
+        try:
+            GTKThemeApplier().cleanup(theme_name)
+            IconThemeApplier().cleanup(theme_name)
+            CursorThemeApplier().cleanup(theme_name)
+            logger.info(f"Cleaned up GTK/icon/cursor symlinks for theme '{theme_name}'")
+        except Exception as e:
+            logger.error(
+                f"Failed to cleanup system theme symlinks for '{theme_name}': {e}"
+            )

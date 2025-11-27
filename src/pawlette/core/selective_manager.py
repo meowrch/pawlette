@@ -743,6 +743,32 @@ class SelectiveThemeManager:
         logger.info(f"Deleting backup branch: {branch_name}")
         return self._run_git("branch", "-D", branch_name)
 
+    def delete_theme_branch(self, theme_name: str) -> bool:
+        """Удаляем ветку темы в git-репозитории состояний."""
+        if not theme_name or theme_name == "main":
+            logger.error(f"Cannot delete invalid theme branch: {theme_name}")
+            return False
+
+        # Проверяем, существует ли ветка
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.git_repo),
+                "show-ref",
+                "--verify",
+                f"refs/heads/{theme_name}",
+            ],
+            capture_output=True,
+        )
+
+        if result.returncode != 0:
+            logger.info(f"Theme branch '{theme_name}' does not exist, nothing to delete")
+            return False
+
+        logger.info(f"Deleting theme branch: {theme_name}")
+        return self._run_git("branch", "-D", theme_name)
+
     def cleanup_old_backups(self, theme_name: str | None = None, keep_last: int = 3):
         """Удаляем старые бэкапы, оставляя только последние N"""
         backups = self.list_backup_branches()

@@ -30,6 +30,7 @@ class Theme(BaseModel):
 class ThemeSource(Enum):
     OFFICIAL = "official"
     COMMUNITY = "community"
+    LOCAL = "local"
 
 
 class RemoteTheme(BaseModel):

@@ -80,6 +80,11 @@ class Installer:
             return url.replace("/blob/", "/raw/")
         return url
 
+    @staticmethod
+    def _is_url(value: str) -> bool:
+        """Проверяет, является ли строка URL."""
+        return value.startswith("http://") or value.startswith("https://")
+
     def _load_themes(
         self, url: str, source_type: ThemeSource
     ) -> dict[str, RemoteTheme]:
@@ -143,8 +148,86 @@ class Installer:
         matches = re.findall(r"v(\d+(?:\.\d+)*)(?:[-_.]|$)", filename)
         return matches[-1] if matches else "1.0"
 
+    def _parse_name_and_version_from_archive_name(
+        self, filename: str
+    ) -> tuple[str, str]:
+        """Возвращает имя темы и версию из имени архива.
+
+        Поддерживаемые форматы имени архива (без расширения):
+        - <theme-name>-vX.Y.Z
+        - <theme-name>-X.Y.Z
+        """
+        base = filename.split("?", 1)[0]
+        # Удаляем популярные суффиксы архивов
+        base_no_ext = re.sub(r"\.(tar\.(gz|xz|bz2)|tgz|zip)$", "", base)
+
+        # 1) Предпочтительный формат: <name>-v<version>
+        match = re.match(r"^(?P<name>.+)-v(?P<version>\d+(?:\.\d+)*)$", base_no_ext)
+        if not match:
+            # 2) Запасной формат: <name>-<version>
+            match = re.match(
+                r"^(?P<name>.+)-(?P<version>\d+(?:\.\d+)*)$",
+                base_no_ext,
+            )
+
+        if not match:
+            raise ValueError(
+                "Archive filename must contain '<name>-v<version>' or "
+                "'<name>-<version>', got: {filename}".format(filename=filename)
+            )
+
+        return match.group("name"), match.group("version")
+
     def install_theme(self, theme_name: str, skip_warning: bool = False):
-        """Устанавливает указанную тему (официальную или из комьюнити)."""
+        """Устанавливает указанную тему.
+
+        Поддерживаются:
+        - имя темы из удалённого магазина;
+        - прямая ссылка на архив темы;
+        - путь до локального файла архива.
+        В случае архива имя и версия берутся из шаблона <name>-v<version> в имени файла,
+        источник помечается как local.
+        """
+        # 1) Прямая ссылка на архив
+        if self._is_url(theme_name):
+            theme_url = self._convert_github_url(theme_name)
+            archive_name = theme_url.split("/")[-1]
+            try:
+                parsed_name, _ = self._parse_name_and_version_from_archive_name(
+                    archive_name
+                )
+            except ValueError as e:
+                print(e)
+                return
+
+            self._install_theme_from_url(parsed_name, theme_url, ThemeSource.LOCAL)
+            return
+
+        # 2) Локальный файл архива
+        # Поддерживаем пути с ~ и относительные пути
+        archive_path = Path(theme_name).expanduser()
+        if archive_path.is_file():
+            try:
+                parsed_name, parsed_version = (
+                    self._parse_name_and_version_from_archive_name(archive_path.name)
+                )
+            except ValueError as e:
+                print(e)
+                return
+
+            print(
+                f"Installing theme '{parsed_name}' from local archive {archive_path}..."
+            )
+            self._install_theme_from_archive_file(
+                theme_name=parsed_name,
+                archive_path=archive_path,
+                theme_version=parsed_version,
+                source_url=str(archive_path),
+                source=ThemeSource.LOCAL,
+            )
+            return
+
+        # 3) Установка по имени из удалённого магазина
         themes = self.fetch_remote_themes()
         if not themes:
             print("Failed to fetch themes list.")
@@ -244,12 +327,94 @@ class Installer:
         answer = input(f"Continue {action}? [y/N]: ").strip().lower()
         return answer in ("y", "yes")
 
+    def _install_theme_from_archive_file(
+        self,
+        theme_name: str,
+        archive_path: Path,
+        theme_version: str | None = None,
+        source_url: str | None = None,
+        source: ThemeSource | None = None,
+    ) -> None:
+        """Распаковывает архив темы из локального файла и регистрирует установку."""
+        if theme_version is None:
+            theme_version = self._extract_version_from_filename(archive_path.name)
+
+        # Целевая директория для темы
+        theme_target_dir = cnst.THEMES_FOLDER / theme_name
+
+        # Полностью удаляем старую папку темы для чистого обновления
+        if theme_target_dir.exists():
+            logger.info(f"Removing old theme directory: {theme_target_dir}")
+            shutil.rmtree(theme_target_dir)
+
+        # Создаём новую чистую папку
+        theme_target_dir.mkdir(exist_ok=True, parents=True)
+
+        # Распаковка архива с обработкой структуры
+        print(f"Extracting {theme_name}...")
+        with tarfile.open(archive_path, "r:gz") as tar:
+            members = tar.getmembers()
+
+            # Определяем общую директорию в архиве
+            if members:
+                members_names = [m.name for m in members]
+                common_dir = os.path.commonpath(members_names)
+
+                # Проверяем нужно ли обрезать путь
+                strip_length = (
+                    len(common_dir) + 1
+                    if all(name.startswith(common_dir) for name in members_names)
+                    else 0
+                )
+            else:
+                strip_length = 0
+
+            # Фильтруем и корректируем пути
+            extracted_members = []
+            for member in members:
+                if strip_length:
+                    new_name = member.name[strip_length:]
+                    if not new_name:  # Пропускаем корневую директорию
+                        continue
+                    member.name = new_name
+
+                # Пропускаем элементы вне целевой директории
+                target_path = os.path.join(theme_target_dir, member.name)
+                if not os.path.abspath(target_path).startswith(
+                    os.path.abspath(theme_target_dir)
+                ):
+                    continue
+
+                extracted_members.append(member)
+
+            # Извлекаем с прогресс-баром
+            with tqdm(
+                total=len(extracted_members), desc="Extracting files", ncols=80
+            ) as pbar:
+                for member in extracted_members:
+                    tar.extract(member, theme_target_dir)
+                    pbar.update(1)
+
+        # Обновляем информацию об установленной теме
+        self.installed_themes[theme_name] = InstalledThemeInfo(
+            name=theme_name,
+            version=theme_version,
+            source_url=source_url or str(archive_path),
+            installed_path=theme_target_dir,
+            source=source,
+        )
+        self._save_installed_themes()
+        print(
+            f"\nTheme '{theme_name}' (v{theme_version}) successfully installed to {theme_target_dir}"
+        )
+
     def _install_theme_from_url(
         self, theme_name: str, theme_url: str, source: ThemeSource | None = None
     ):
-        """Скачивает архив темы и устанавливает её."""
+        """Скачивает архив темы по URL и устанавливает её."""
         print(f"Installing theme '{theme_name}' from {theme_url}...")
 
+        tmp_path: str | None = None
         try:
             # Получаем размер файла для прогресс-бара
             response = requests.head(theme_url, allow_redirects=True)
@@ -281,79 +446,19 @@ class Installer:
 
                 tmp_path = tmp_file.name
 
-            # Целевая директория для темы
-            theme_target_dir = cnst.THEMES_FOLDER / theme_name
-
-            # Полностью удаляем старую папку темы для чистого обновления
-            if theme_target_dir.exists():
-                logger.info(f"Removing old theme directory: {theme_target_dir}")
-                shutil.rmtree(theme_target_dir)
-
-            # Создаём новую чистую папку
-            theme_target_dir.mkdir(exist_ok=True, parents=True)
-
-            # Распаковка архива с обработкой структуры
-            print(f"Extracting {theme_name}...")
-            with tarfile.open(tmp_path, "r:gz") as tar:
-                members = tar.getmembers()
-
-                # Определяем общую директорию в архиве
-                if members:
-                    members_names = [m.name for m in members]
-                    common_dir = os.path.commonpath(members_names)
-
-                    # Проверяем нужно ли обрезать путь
-                    strip_length = (
-                        len(common_dir) + 1
-                        if all(name.startswith(common_dir) for name in members_names)
-                        else 0
-                    )
-                else:
-                    strip_length = 0
-
-                # Фильтруем и корректируем пути
-                extracted_members = []
-                for member in members:
-                    if strip_length:
-                        new_name = member.name[strip_length:]
-                        if not new_name:  # Пропускаем корневую директорию
-                            continue
-                        member.name = new_name
-
-                    # Пропускаем элементы вне целевой директории
-                    target_path = os.path.join(theme_target_dir, member.name)
-                    if not os.path.abspath(target_path).startswith(
-                        os.path.abspath(theme_target_dir)
-                    ):
-                        continue
-
-                    extracted_members.append(member)
-
-                # Извлекаем с прогресс-баром
-                with tqdm(
-                    total=len(extracted_members), desc="Extracting files", ncols=80
-                ) as pbar:
-                    for member in extracted_members:
-                        tar.extract(member, theme_target_dir)
-                        pbar.update(1)
-
-            # Обновляем информацию об установленной теме
-            self.installed_themes[theme_name] = InstalledThemeInfo(
-                name=theme_name,
-                version=theme_version,
+            # Распаковка и регистрация из загруженного файла
+            self._install_theme_from_archive_file(
+                theme_name=theme_name,
+                archive_path=Path(tmp_path),
+                theme_version=theme_version,
                 source_url=theme_url,
-                installed_path=theme_target_dir,
                 source=source,
-            )
-            self._save_installed_themes()
-            print(
-                f"\nTheme '{theme_name}' (v{theme_version}) successfully installed to {theme_target_dir}"
             )
         except Exception as e:
             logger.error(f"Error installing theme: {e}")
             raise
         finally:
-            if "tmp_path" in locals() and os.path.exists(tmp_path):
+            if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
     def update_theme(self, theme_name: str):
@@ -413,9 +518,7 @@ class Installer:
 
             remote = remote_themes[theme_name]
             theme_url = remote.url
-            new_version = self._extract_version_from_filename(
-                theme_url.split("/")[-1]
-            )
+            new_version = self._extract_version_from_filename(theme_url.split("/")[-1])
             current_version = installed.version
 
             if version.parse(new_version) <= version.parse(current_version):
@@ -431,15 +534,19 @@ class Installer:
 
         # Если есть комьюнити-темы, показываем предупреждение
         if community_to_update:
-            lines = [
-                "The update includes community themes:",
-                "",
-            ] + [f"  - {name}" for name in sorted(community_to_update)] + [
-                "",
-                "These themes are not reviewed by Pawlette maintainers.",
-                "Please check their source repositories before updating.",
-                "Update at your own risk.",
-            ]
+            lines = (
+                [
+                    "The update includes community themes:",
+                    "",
+                ]
+                + [f"  - {name}" for name in sorted(community_to_update)]
+                + [
+                    "",
+                    "These themes are not reviewed by Pawlette maintainers.",
+                    "Please check their source repositories before updating.",
+                    "Update at your own risk.",
+                ]
+            )
             self._print_warning_box("⚠️  COMMUNITY THEMES", lines)
 
         # Показываем полный список обновляемых тем с версиями и источником
@@ -457,9 +564,11 @@ class Installer:
         print()
 
         # Глобальное подтверждение перед обновлением (для любых тем)
-        answer = input(
-            "Do you want to proceed with updating these themes? [y/N]: "
-        ).strip().lower()
+        answer = (
+            input("Do you want to proceed with updating these themes? [y/N]: ")
+            .strip()
+            .lower()
+        )
         if answer not in ("y", "yes"):
             print("Update cancelled.")
             return
@@ -469,3 +578,37 @@ class Installer:
                 f"Updating theme '{theme_name}' from v{current_version} to v{new_version}..."
             )
             self._install_theme_from_url(theme_name, remote.url, remote.source)
+
+    def uninstall_theme(self, theme_name: str) -> None:
+        """Удаляет установленную тему из локального каталога и кэша."""
+        removed_something = False
+
+        # Удаляем директорию темы из локального каталога
+        theme_dir = cnst.THEMES_FOLDER / theme_name
+        if theme_dir.exists():
+            try:
+                shutil.rmtree(theme_dir)
+                print(f"Removed theme directory: {theme_dir}")
+                removed_something = True
+            except Exception as e:
+                logger.error(f"Failed to remove theme directory {theme_dir}: {e}")
+
+        # Удаляем запись из installed_themes.json
+        if theme_name in self.installed_themes:
+            self.installed_themes.pop(theme_name, None)
+            self._save_installed_themes()
+            print(f"Removed theme '{theme_name}' from installed themes cache.")
+            removed_something = True
+
+        # Удаляем файл с сохранённой версией темы
+        version_file = cnst.APP_STATE_DIR / f"{theme_name}.version"
+        if version_file.exists():
+            try:
+                version_file.unlink()
+                print(f"Removed stored version file: {version_file}")
+                removed_something = True
+            except Exception as e:
+                logger.error(f"Failed to remove version file {version_file}: {e}")
+
+        if not removed_something:
+            print(f"Theme '{theme_name}' is not installed.")
