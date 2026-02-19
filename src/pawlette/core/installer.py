@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import tarfile
 import tempfile
 from pathlib import Path
@@ -178,6 +179,46 @@ class Installer:
 
         return match.group("name"), match.group("version")
 
+    @staticmethod
+    def _fix_permissions(path: Path) -> None:
+        """Нормализует права доступа для директории темы после распаковки.
+
+        Tarball может содержать произвольные права (напр. 0o600, 0o400, 0o000),
+        которые затрудняют чтение, работу git или копирование файлов темы.
+
+        Устанавливаемся:
+            директории          -> 0o755  (rwxr-xr-x)
+            файлы с битом исполнения -> 0o755  (rwxr-xr-x, сохраняем намерение)
+            обычные файлы       -> 0o644  (rw-r--r--)
+
+        Симлинки не трогаем (lchmod непортативен на всех платформах).
+        """
+        # Права на корневую директорию
+        try:
+            path.chmod(0o755)
+        except OSError as e:
+            logger.warning(f"Could not set permissions on {path}: {e}")
+
+        for item in path.rglob("*"):
+            try:
+                # Симлинки пропускаем: lchmod доступен не везде,
+                # а реальное назначение симлинка всегда изменяется правами цели.
+                if item.is_symlink():
+                    continue
+
+                if item.is_dir():
+                    item.chmod(0o755)
+                else:
+                    # Если в архиве был установлен любой бит исполнения — сохраняем 0o755,
+                    # иначе нормализуем до 0o644.
+                    current_mode = item.stat().st_mode
+                    if current_mode & stat.S_IXUSR:
+                        item.chmod(0o755)
+                    else:
+                        item.chmod(0o644)
+            except OSError as e:
+                logger.warning(f"Could not set permissions on {item}: {e}")
+
     def install_theme(self, theme_name: str, skip_warning: bool = False):
         """Устанавливает указанную тему.
 
@@ -251,7 +292,7 @@ class Installer:
 
     @staticmethod
     def _visible_width(text: str) -> int:
-        """Возвращает приблизительную ширину строки в терминале с учётом юникод-символов.
+        """Возвращает приближительную ширину строки в терминале с учётом юникод-символов.
 
         Учитывает полноширинные символы и emoji, а также нулевую ширину у
         вариационных селекторов и комбинируемых символов.
@@ -347,8 +388,10 @@ class Installer:
             logger.info(f"Removing old theme directory: {theme_target_dir}")
             shutil.rmtree(theme_target_dir)
 
-        # Создаём новую чистую папку
+        # Создаём новую чистую папку с явными правами 0o755,
+        # чтобы гарантировать запись файлов независимо от umask.
         theme_target_dir.mkdir(exist_ok=True, parents=True)
+        theme_target_dir.chmod(0o755)
 
         # Распаковка архива с обработкой структуры
         print(f"Extracting {theme_name}...")
@@ -394,6 +437,12 @@ class Installer:
                 for member in extracted_members:
                     tar.extract(member, theme_target_dir)
                     pbar.update(1)
+
+        # Нормализуем права доступа на все распакованные файлы.
+        # tarball может содержать произвольные права (0o400, 0o600 и т..п.),
+        # которые могут помешать чтению, git-трекингу или копированию файлов.
+        logger.info(f"Fixing permissions for theme directory: {theme_target_dir}")
+        self._fix_permissions(theme_target_dir)
 
         # Обновляем информацию об установленной теме
         self.installed_themes[theme_name] = InstalledThemeInfo(
@@ -445,6 +494,12 @@ class Installer:
                             pbar.update(len(chunk))
 
                 tmp_path = tmp_file.name
+
+            # Устанавливаем права 0o644 на временный файл.
+            # NamedTemporaryFile создаёт файл с 0o600, что нормально,
+            # но при рестриктивном umask или нестандартных настройках
+            # явное указание прав гарантирует читаемость для tarfile.
+            os.chmod(tmp_path, 0o644)
 
             # Распаковка и регистрация из загруженного файла
             self._install_theme_from_archive_file(
