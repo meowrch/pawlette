@@ -207,10 +207,35 @@ class SelectiveThemeManager:
         return False
 
     def _matches_pattern(self, path: str, pattern: str) -> bool:
-        """Простая проверка соответствия паттерну (с поддержкой *)"""
+        """Проверка соответствия паттерну с поддержкой ** wildcards (gitignore-style).
+
+        Python's fnmatch не поддерживает **, поэтому паттерны вида **/Cache/
+        обрабатываются вручную: проверяем каждый компонент и суффикс пути.
+        """
         import fnmatch
 
-        return fnmatch.fnmatch(path, pattern)
+        # Нормализуем разделители пути
+        normalized_path = path.replace("\\", "/")
+        # Убираем trailing slash из паттерна (маркер директории, напр. **/Cache/)
+        clean_pattern = pattern.rstrip("/")
+
+        if "**" in clean_pattern:
+            # Для паттернов вида **/foo или **/foo/bar: проверяем, совпадает ли
+            # какой-либо компонент или суффикс пути с частью паттерна после **/
+            # Пример: **/Cache/ -> ищем компонент "Cache" в любом месте пути
+            suffix_pattern = clean_pattern.lstrip("*/")
+            path_parts = normalized_path.split("/")
+            for i in range(len(path_parts)):
+                # Проверяем отдельный компонент (для **/Cache/ -> "Cache")
+                if fnmatch.fnmatch(path_parts[i], suffix_pattern):
+                    return True
+                # Проверяем суффикс пути начиная с i (для **/foo/bar -> "foo/bar")
+                candidate = "/".join(path_parts[i:])
+                if fnmatch.fnmatch(candidate, suffix_pattern):
+                    return True
+            return False
+
+        return fnmatch.fnmatch(normalized_path, clean_pattern)
 
     def _get_theme_files(self, theme: Theme) -> list[Path]:
         """Получаем все файлы темы, которые есть в config"""
@@ -244,7 +269,7 @@ class SelectiveThemeManager:
 
     def _create_or_switch_branch(self, theme_name: str):
         """Создаем или переключаемся на ветку темы"""
-        # Сначала коммитим или stash все изменения перед переключением
+        # Сначала коммитим все изменения перед переключением
         self._handle_uncommitted_changes()
 
         # Проверяем, существует ли ветка
@@ -263,18 +288,42 @@ class SelectiveThemeManager:
         if result.returncode == 0:
             # Ветка существует, переключаемся
             logger.debug(f"Switching to existing branch: {theme_name}")
-            self._run_git("checkout", theme_name)
+            ok = self._run_git("checkout", theme_name)
+            if not ok:
+                # Мягкий checkout упал — возможно, нетрекаемые файлы конфликтуют
+                # с файлами из целевой ветки (напр. приложение регенерировало файл,
+                # который был закоммичен в этой ветке ранее).
+                # К этому моменту все tracked-изменения уже закоммичены выше,
+                # поэтому --force безопасно перезапишет только нетрекаемые конфликты.
+                logger.warning(
+                    f"Checkout of '{theme_name}' failed, retrying with --force "
+                    "(untracked conflicting files will be overwritten)"
+                )
+                ok = self._run_git("checkout", "--force", theme_name)
+                if not ok:
+                    raise RuntimeError(
+                        f"Failed to checkout branch '{theme_name}' even with --force. "
+                        "Check git logs for details."
+                    )
         else:
             # Создаем новую ветку от базовой ветки main
             logger.debug(f"Creating new branch: {theme_name} from main")
-            self._run_git("checkout", "-b", theme_name, "main")
+            ok = self._run_git("checkout", "-b", theme_name, "main")
+            if not ok:
+                raise RuntimeError(
+                    f"Failed to create and checkout new branch '{theme_name}' from main."
+                )
 
     def _handle_uncommitted_changes(self):
         """Обрабатываем uncommitted изменения перед переключением ветки"""
         if self.has_uncommitted_changes():
             logger.debug("Found uncommitted changes, committing them")
-            # Добавляем все изменения
-            self._run_git("add", ".")
+            # Используем -A вместо . для добавления всех изменений из всего воркдерева.
+            # При вызове через git -C <git_repo_dir>, точка . разрешается относительно
+            # git_repo_dir, а НЕ относительно core.worktree (~/.config), из-за чего
+            # изменения в конфигах пользователя не индексировались. Флаг -A явно
+            # обходит весь worktree независимо от текущей директории.
+            self._run_git("add", "-A")
             # Коммитим с сообщением о пользовательских изменениях
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self._run_git(
@@ -297,9 +346,12 @@ class SelectiveThemeManager:
 
             comment_style = FormatManager.get_comment_style(file_path, self.config)
 
-            # Создаем паттерн для удаления всех PAW-THEME блоков
+            # Создаем паттерн для удаления всех PAW-THEME блоков.
+            # Используем захватывающую группу (PRE|POST) с back-reference \1 вместо
+            # (?:PRE|POST), чтобы гарантировать: PRE-START закрывается только PRE-END,
+            # POST-START — только POST-END. Аналогично patch_engine.py.
             pattern = re.compile(
-                rf"^\s*{re.escape(comment_style)}\s+PAW-THEME-(?:PRE|POST)-START:.*?^\s*{re.escape(comment_style)}\s+PAW-THEME-(?:PRE|POST)-END:.*?$",
+                rf"^\s*{re.escape(comment_style)}\s+PAW-THEME-(PRE|POST)-START:.*?^\s*{re.escape(comment_style)}\s+PAW-THEME-\1-END:.*?$",
                 flags=re.DOTALL | re.MULTILINE,
             )
 
