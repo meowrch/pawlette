@@ -156,6 +156,12 @@ def configure_argparser() -> argparse.ArgumentParser:
         help="Name of theme (current theme if not specified)",
     )
 
+    # Git cleanup command
+    subparsers.add_parser(
+        "git-cleanup",
+        help="Scan git index for ignored files and remove them from tracking",
+    )
+
     return parser
 
 
@@ -388,6 +394,12 @@ def main() -> None:
                 )
             except Exception as e:
                 print(f"❌ Failed to restore commit: {e}")
+        case "git-cleanup":
+            if not manager.use_selective:
+                print("Command is only available in selective mode")
+                return
+
+            manager.selective_manager.cleanup_ignored_files()
         case _:
             logger.warning(f'Command "{args.command}" not found!')
 
