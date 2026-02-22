@@ -57,6 +57,7 @@ class SelectiveThemeManager:
         exclude_path = self.git_repo / "info" / "exclude"
         exclude_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Паттерны для игнорирования (как в .gitignore)
         self.ignored_patterns = [
             # Папки кешей и временных данных
             "**/Cache/",
@@ -183,14 +184,28 @@ class SelectiveThemeManager:
             "*.autosave",
         ]
 
+        # Записываем паттерны без trailing slash для совместимости с ls-files -i
+        clean_patterns = []
+        for p in self.ignored_patterns:
+            clean_patterns.append(p)
+            if p.endswith("/"):
+                clean_patterns.append(p.rstrip("/"))
+
         with open(exclude_path, "w") as f:
-            f.write("\n".join(self.ignored_patterns))
+            f.write("\n".join(clean_patterns))
 
     def _run_git(self, *args: str) -> bool:
         """Выполняем git команду в контексте нашего репозитория"""
         try:
             subprocess.run(
-                ["git", "-C", str(self.git_repo)] + list(args),
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "--work-tree",
+                    str(self.config_dir),
+                ]
+                + list(args),
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
@@ -281,7 +296,7 @@ class SelectiveThemeManager:
         result = subprocess.run(
             [
                 "git",
-                "-C",
+                "--git-dir",
                 str(self.git_repo),
                 "show-ref",
                 "--verify",
@@ -323,11 +338,6 @@ class SelectiveThemeManager:
         """Обрабатываем uncommitted изменения перед переключением ветки"""
         if self.has_uncommitted_changes():
             logger.debug("Found uncommitted changes, committing them")
-            # Используем -A вместо . для добавления всех изменений из всего воркдерева.
-            # При вызове через git -C <git_repo_dir>, точка . разрешается относительно
-            # git_repo_dir, а НЕ относительно core.worktree (~/.config), из-за чего
-            # изменения в конфигах пользователя не индексировались. Флаг -A явно
-            # обходит весь worktree независимо от текущей директории.
             self._run_git("add", "-A")
             # Коммитим с сообщением о пользовательских изменениях
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -406,8 +416,6 @@ class SelectiveThemeManager:
         """
         print("🔍 Checking for ignored files in git index...")
 
-        # Базовая команда с явным указанием work-tree и git-dir
-        # В bare-репозиториях git может вести себя странно без этих флагов при работе с индексом.
         git_cmd_base = [
             "git",
             "--git-dir",
@@ -416,35 +424,35 @@ class SelectiveThemeManager:
             str(self.config_dir),
         ]
 
-        # 1. Получаем список всех tracked файлов
+        # 1. Используем git ls-files -i -c --exclude-standard для поиска файлов,
+        # которые находятся в индексе (-c), но соответствуют правилам игнорирования (-i).
         try:
             ls_result = subprocess.run(
-                git_cmd_base + ["ls-files", "-z"],
+                git_cmd_base + ["ls-files", "-i", "-c", "-z", "--exclude-standard"],
                 capture_output=True,
                 check=True,
             )
         except subprocess.CalledProcessError as e:
-            print(f"❌ Failed to list files: {e.stderr.decode()}")
+            print(f"❌ Failed to run git ls-files: {e.stderr.decode()}")
             return
 
-        if not ls_result.stdout:
-            print("✅ No tracked files found.")
-            return
+        ignored_files_raw = ls_result.stdout
+        
+        # 2. Если ls-files ничего не нашел, сделаем ручную проверку самых частых путей (mozilla)
+        # Это запасной вариант, если ls-files -i ведет себя нестабильно в bare репозитории.
+        if not ignored_files_raw:
+            try:
+                # Проверяем напрямую: есть ли mozilla/ в списке отслеживаемых
+                check_moz = subprocess.run(
+                    git_cmd_base + ["ls-files", "-z", "mozilla", ".mozilla"],
+                    capture_output=True,
+                    check=False,
+                )
+                if check_moz.stdout:
+                    ignored_files_raw = check_moz.stdout
+            except Exception:
+                pass
 
-        # 2. Передаем список tracked файлов в check-ignore.
-        # ВАЖНО: Мы используем --stdin, чтобы проверить уже находящиеся в индексе файлы.
-        try:
-            check_ignore_result = subprocess.run(
-                git_cmd_base + ["check-ignore", "--stdin", "-z"],
-                input=ls_result.stdout,
-                capture_output=True,
-                check=False,
-            )
-        except Exception as e:
-            print(f"❌ Failed to run git check-ignore: {e}")
-            return
-
-        ignored_files_raw = check_ignore_result.stdout
         if not ignored_files_raw:
             print("✅ No tracked files match current ignore patterns.")
             return
@@ -455,7 +463,7 @@ class SelectiveThemeManager:
             return
 
         count = len(ignored_files)
-        print(f"📦 Found {count} tracked files that should be ignored.")
+        print(f"📦 Found {count} tracked files that should be ignored (including subfiles).")
         print("🚀 Removing from git index (keeping them on disk)...")
 
         # 3. Удаляем найденные файлы из индекса
@@ -495,7 +503,7 @@ class SelectiveThemeManager:
             else:
                 print("❌ Failed to commit cleanup.")
         else:
-            print("✅ No changes were necessary (index already clean).")
+            print("✅ Index is already clean (all ignored files removed).")
 
     def apply_theme(self, theme_name: str):
         """Применяем тему с git-концепцией"""
@@ -651,7 +659,7 @@ class SelectiveThemeManager:
             result = subprocess.run(
                 [
                     "git",
-                    "-C",
+                    "--git-dir",
                     str(self.git_repo),
                     "log",
                     "--oneline",
@@ -763,7 +771,15 @@ class SelectiveThemeManager:
         """Получаем название текущей ветки (темы)"""
         try:
             result = subprocess.run(
-                ["git", "-C", str(self.git_repo), "branch", "--show-current"],
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "--work-tree",
+                    str(self.config_dir),
+                    "branch",
+                    "--show-current",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -777,7 +793,15 @@ class SelectiveThemeManager:
         """Проверяем, есть ли uncommitted изменения"""
         try:
             result = subprocess.run(
-                ["git", "-C", str(self.git_repo), "status", "--porcelain"],
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "--work-tree",
+                    str(self.config_dir),
+                    "status",
+                    "--porcelain",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -790,7 +814,15 @@ class SelectiveThemeManager:
         """Получаем список uncommitted файлов"""
         try:
             result = subprocess.run(
-                ["git", "-C", str(self.git_repo), "status", "--porcelain"],
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "--work-tree",
+                    str(self.config_dir),
+                    "status",
+                    "--porcelain",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -813,7 +845,15 @@ class SelectiveThemeManager:
                     self._create_or_switch_branch(theme_name)
 
             result = subprocess.run(
-                ["git", "-C", str(self.git_repo), "status", "--porcelain"],
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "--work-tree",
+                    str(self.config_dir),
+                    "status",
+                    "--porcelain",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -823,25 +863,15 @@ class SelectiveThemeManager:
             for line in result.stdout.strip().split("\n"):
                 if line.strip():
                     # Парсим вывод git status --porcelain
-                    # Формат: XY filename (где XY - двухсимвольный статус)
-                    # Но может быть и X filename (без второго символа статуса)
                     if len(line) >= 3:
-                        # Ищем первый пробел после статуса
-                        space_index = line.find(
-                            " ", 2
-                        )  # Ищем пробел после второго символа
+                        space_index = line.find(" ", 2)
                         if space_index == -1:
-                            space_index = line.find(
-                                " ", 1
-                            )  # Ищем пробел после первого символа
+                            space_index = line.find(" ", 1)
 
                         if space_index != -1:
-                            filename = line[
-                                space_index + 1 :
-                            ]  # Берем все после пробела
+                            filename = line[space_index + 1 :]
                             changed_files.append(filename)
                         else:
-                            # Fallback: берем все после второго символа
                             filename = line[2:]
                             changed_files.append(filename)
 
@@ -877,7 +907,16 @@ class SelectiveThemeManager:
         """Получаем список всех бэкап веток"""
         try:
             result = subprocess.run(
-                ["git", "-C", str(self.git_repo), "branch", "--list", "*-backup-*"],
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "--work-tree",
+                    str(self.config_dir),
+                    "branch",
+                    "--list",
+                    "*-backup-*",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -885,7 +924,6 @@ class SelectiveThemeManager:
             branches = []
             for line in result.stdout.strip().split("\n"):
                 if line.strip():
-                    # Убираем звёздочку (* указывает на текущую ветку)
                     branch = line.strip().lstrip("* ").strip()
                     branches.append(branch)
             return branches
@@ -907,12 +945,13 @@ class SelectiveThemeManager:
             logger.error(f"Cannot delete invalid theme branch: {theme_name}")
             return False
 
-        # Проверяем, существует ли ветка
         result = subprocess.run(
             [
                 "git",
-                "-C",
+                "--git-dir",
                 str(self.git_repo),
+                "--work-tree",
+                str(self.config_dir),
                 "show-ref",
                 "--verify",
                 f"refs/heads/{theme_name}",
@@ -931,14 +970,11 @@ class SelectiveThemeManager:
         """Удаляем старые бэкапы, оставляя только последние N"""
         backups = self.list_backup_branches()
 
-        # Фильтруем по имени темы если указано
         if theme_name:
             backups = [b for b in backups if b.startswith(f"{theme_name}-")]
 
-        # Сортируем по временной метке (новые в начале)
         backups.sort(reverse=True)
 
-        # Удаляем всё кроме последних N
         for backup in backups[keep_last:]:
             self.delete_backup_branch(backup)
 
