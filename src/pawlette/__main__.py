@@ -162,6 +162,12 @@ def configure_argparser() -> argparse.ArgumentParser:
         help="Scan git index for ignored files and remove them from tracking",
     )
 
+    # Git cleanup all branches
+    subparsers.add_parser(
+        "git-cleanup-all",
+        help="Scan git index in ALL branches for ignored files and remove them from tracking",
+    )
+
     return parser
 
 
@@ -400,6 +406,12 @@ def main() -> None:
                 return
 
             manager.selective_manager.cleanup_ignored_files()
+        case "git-cleanup-all":
+            if not manager.use_selective:
+                print("Command is only available in selective mode")
+                return
+
+            manager.selective_manager.cleanup_all_branches()
         case _:
             logger.warning(f'Command "{args.command}" not found!')
 

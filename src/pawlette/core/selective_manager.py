@@ -513,6 +513,50 @@ class SelectiveThemeManager:
         else:
             print("✅ Index is already clean (all ignored files removed).")
 
+    def cleanup_all_branches(self):
+        """
+        Проходит по всем локальным веткам (кроме бэкапов) и выполняет cleanup_ignored_files.
+        """
+        print("🔍 Starting global cleanup across all branches...")
+
+        # Получаем текущую ветку, чтобы вернуться на неё
+        original_branch = self.get_current_theme() or "main"
+
+        # Список веток
+        try:
+            result = subprocess.run(
+                [
+                    "git",
+                    "--git-dir",
+                    str(self.git_repo),
+                    "branch",
+                    "--format=%(refname:short)",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            branches = [b.strip() for b in result.stdout.split("\n") if b.strip()]
+        except Exception as e:
+            print(f"❌ Failed to list branches: {e}")
+            return
+
+        for branch in branches:
+            if "-backup-" in branch:
+                continue
+
+            print(f"\n🌿 Processing branch: {branch}")
+            # Переключаемся. Используем --force, так как нас не волнуют нетрекаемые изменения здесь,
+            # мы просто хотим почистить индекс каждой ветки.
+            if self._run_git("checkout", "--force", branch):
+                self.cleanup_ignored_files()
+            else:
+                print(f"⚠️  Could not switch to branch {branch}")
+
+        # Возвращаемся
+        print(f"\n🔄 Returning to original branch: {original_branch}")
+        self._run_git("checkout", "--force", original_branch)
+
     def apply_theme(self, theme_name: str):
         """Применяем тему с git-концепцией"""
         logger.info(f"Applying theme: {theme_name}")
@@ -940,12 +984,11 @@ class SelectiveThemeManager:
 
     def delete_backup_branch(self, branch_name: str) -> bool:
         """Удаляем бэкап ветки"""
-        if "-backup-" not in branch_name:
-            logger.error(f"Cannot delete non-backup branch: {branch_name}")
-            return False
-
-        logger.info(f"Deleting backup branch: {branch_name}")
-        return self._run_git("branch", "-D", branch_name)
+        if "-backup-" in branch_name:
+            logger.info(f"Deleting backup branch: {branch_name}")
+            return self._run_git("branch", "-D", branch_name)
+        logger.error(f"Cannot delete non-backup branch: {branch_name}")
+        return False
 
     def delete_theme_branch(self, theme_name: str) -> bool:
         """Удаляем ветку темы в git-репозитории состояний."""
