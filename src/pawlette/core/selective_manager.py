@@ -73,6 +73,7 @@ class SelectiveThemeManager:
             "**/CachedExtensions/",
             "**/CachedImages/",
             "**/CachedResources/",
+            "**/CachedProfilesData/",
             # Папки логов
             "**/logs/",
             "**/log/",
@@ -108,6 +109,13 @@ class SelectiveThemeManager:
             ".mozilla/",
             "**/mozilla/",
             "**/.mozilla/",
+            # VS Code forks
+            "Code/CachedProfilesData/",
+            "Code-OSS/CachedProfilesData/",
+            "VSCodium/CachedProfilesData/",
+            "Cursor/CachedProfilesData/",
+            # Go telemetry
+            "go/telemetry/local/",
             # Папки состояний приложений
             "**/globalStorage/",
             "**/workspaceStorage/",
