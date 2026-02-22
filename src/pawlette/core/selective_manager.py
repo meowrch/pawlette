@@ -404,86 +404,68 @@ class SelectiveThemeManager:
 
         Создаёт коммит 'chore: stop tracking ignored files' если что-то было удалено.
         """
-        logger.info("Checking for ignored files in git index...")
+        print("🔍 Checking for ignored files in git index...")
 
-        # 1. Получаем список всех tracked файлов (разделенных null-byte для безопасности путей)
-        # ls-files -z выводит пути относительно корня репозитория (core.worktree)
+        # Базовая команда с явным указанием work-tree и git-dir
+        # В bare-репозиториях git может вести себя странно без этих флагов при работе с индексом.
+        git_cmd_base = [
+            "git",
+            "--git-dir",
+            str(self.git_repo),
+            "--work-tree",
+            str(self.config_dir),
+        ]
+
+        # 1. Получаем список всех tracked файлов
         try:
             ls_result = subprocess.run(
-                ["git", "-C", str(self.git_repo), "ls-files", "-z"],
+                git_cmd_base + ["ls-files", "-z"],
                 capture_output=True,
                 check=True,
             )
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to list files: {e}")
+            print(f"❌ Failed to list files: {e.stderr.decode()}")
             return
 
         if not ls_result.stdout:
-            logger.info("No tracked files found.")
+            print("✅ No tracked files found.")
             return
 
-        # 2. Передаем список tracked файлов в check-ignore
-        # check-ignore --stdin -z -v -n
-        #   --stdin: читаем пути из stdin
-        #   -z: ввод/вывод разделен null-byte
-        #   --exclude-standard: использовать info/exclude и .gitignore
-        #   -v: (опционально) показать паттерн
-        #   -n: (non-matching) НЕ используем, нам нужны только matching
+        # 2. Передаем список tracked файлов в check-ignore.
+        # ВАЖНО: Мы используем --stdin, чтобы проверить уже находящиеся в индексе файлы.
         try:
             check_ignore_result = subprocess.run(
-                [
-                    "git",
-                    "-C",
-                    str(self.git_repo),
-                    "check-ignore",
-                    "--stdin",
-                    "-z",
-                    "--exclude-standard",
-                ],
+                git_cmd_base + ["check-ignore", "--stdin", "-z"],
                 input=ls_result.stdout,
                 capture_output=True,
-                # check=False, т.к. exit code 1 означает "ничего не найдено", что нормально
+                check=False,
             )
-        except subprocess.CalledProcessError as e:
-            # check-ignore возвращает 128 при фатальных ошибках
-            if e.returncode == 128:
-                logger.error(f"git check-ignore failed: {e.stderr}")
-                return
-            # Код 1 просто означает, что игнорируемых файлов нет
-            if e.returncode == 1:
-                logger.info("No ignored files found in tracking.")
-                return
+        except Exception as e:
+            print(f"❌ Failed to run git check-ignore: {e}")
+            return
 
         ignored_files_raw = check_ignore_result.stdout
         if not ignored_files_raw:
-            logger.info("No ignored files found in tracking.")
+            print("✅ No tracked files match current ignore patterns.")
             return
 
-        # Разбиваем по \0 и фильтруем пустые строки
         ignored_files = [f for f in ignored_files_raw.split(b"\0") if f]
-
         if not ignored_files:
+            print("✅ No tracked files match current ignore patterns.")
             return
 
         count = len(ignored_files)
-        logger.info(
-            f"Found {count} files that should be ignored but are tracked. Removing from index..."
-        )
+        print(f"📦 Found {count} tracked files that should be ignored.")
+        print("🚀 Removing from git index (keeping them on disk)...")
 
-        # 3. Удаляем найденные файлы из индекса (но не с диска!)
-        # git rm --cached --ignore-unmatch -z -- <paths...>
-        chunk_size = 1000  # Разбиваем на чанки, чтобы не переполнить командную строку
+        # 3. Удаляем найденные файлы из индекса
+        chunk_size = 500
         for i in range(0, len(ignored_files), chunk_size):
             chunk = ignored_files[i : i + chunk_size]
             try:
-                # Преобразуем bytes пути обратно в строки для subprocess аргументов,
-                # но безопасно передавать их через null-terminated нельзя в аргументах (только файл или stdin).
-                # Поэтому используем --pathspec-from-file=- c -z
                 subprocess.run(
-                    [
-                        "git",
-                        "-C",
-                        str(self.git_repo),
+                    git_cmd_base
+                    + [
                         "rm",
                         "--cached",
                         "--ignore-unmatch",
@@ -493,23 +475,27 @@ class SelectiveThemeManager:
                     input=b"\0".join(chunk),
                     check=True,
                     stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
                 )
             except subprocess.CalledProcessError as e:
-                logger.error(f"Failed to remove files from index: {e}")
+                print(f"⚠️  Error during rm: {e.stderr.decode()}")
                 continue
 
         # 4. Коммитим изменения
         if self.has_uncommitted_changes():
-            logger.info("Committing changes...")
-            self._run_git(
+            print("💾 Committing changes...")
+            ok = self._run_git(
                 "commit",
                 "-m",
                 "chore: stop tracking ignored files (cleaned via pawlette)",
                 "--allow-empty",
             )
-            logger.info("✅ Cleanup complete. Ignored files removed from git tracking.")
+            if ok:
+                print("✨ Done! Ignored files removed from git tracking.")
+            else:
+                print("❌ Failed to commit cleanup.")
         else:
-            logger.info("No changes needed.")
+            print("✅ No changes were necessary (index already clean).")
 
     def apply_theme(self, theme_name: str):
         """Применяем тему с git-концепцией"""
@@ -661,7 +647,7 @@ class SelectiveThemeManager:
     def _has_theme_commit_in_branch(self, theme_name: str) -> bool:
         """Проверяем, есть ли хотя бы один коммит применения темы в ветке"""
         try:
-            # Проверяем историю коммитов в текущей ветке
+            # Проверяем история коммитов в текущей ветке
             result = subprocess.run(
                 [
                     "git",
