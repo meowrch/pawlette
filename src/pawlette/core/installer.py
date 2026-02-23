@@ -234,12 +234,30 @@ class Installer:
             theme_url = self._convert_github_url(theme_name)
             archive_name = theme_url.split("/")[-1]
             try:
-                parsed_name, _ = self._parse_name_and_version_from_archive_name(
+                parsed_name, parsed_version = self._parse_name_and_version_from_archive_name(
                     archive_name
                 )
-            except ValueError as e:
-                print(e)
-                return
+            except ValueError:
+                # Fallback: try to deduce name from URL if it's a GitHub archive
+                # URL: https://github.com/<owner>/<repo>/archive/...
+                # Extract <repo> as theme name
+                if "github.com" in theme_url and "/archive/" in theme_url:
+                    parts = theme_url.split("/")
+                    try:
+                        repo_idx = parts.index("archive") - 1
+                        if repo_idx >= 0:
+                            parsed_name = parts[repo_idx]
+                            parsed_version = self._extract_version_from_filename(archive_name)
+                            print(f"Deduced theme name from URL: {parsed_name} (v{parsed_version})")
+                        else:
+                            raise ValueError("Invalid GitHub archive URL structure")
+                    except (ValueError, IndexError):
+                         # If extraction fails, re-raise original error or just print it
+                         print(f"Could not parse theme name from archive: {archive_name}")
+                         return
+                else:
+                     print(f"Could not parse theme name from archive: {archive_name}")
+                     return
 
             self._install_theme_from_url(parsed_name, theme_url, ThemeSource.LOCAL)
             return

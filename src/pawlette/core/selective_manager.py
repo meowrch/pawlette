@@ -37,23 +37,72 @@ class SelectiveThemeManager:
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
     def _init_git_repo(self):
-        """Инициализируем git-репозиторий для состояний тем"""
-        if not (self.git_repo / "HEAD").exists():
-            logger.debug("Initializing git repository")
-            self.git_repo.mkdir(parents=True, exist_ok=True)
-            self._run_git("init", "--bare", "--initial-branch=main")
-            self._run_git("config", "core.bare", "false")
-            self._run_git("config", "core.worktree", str(self.config_dir))
-            self._run_git("config", "user.name", "Pawlette")
-            self._run_git("config", "user.email", "pawlette@example.com")
-            # Создаем пустой коммит в main ветке
-            self._run_git("commit", "--allow-empty", "-m", "Initial commit")
+        """Инициализируем git-репозиторий для состояний тем."""
+        if (self.git_repo / "HEAD").exists():
+            # Репозиторий уже инициализирован — только обновим exclude.
+            self._create_git_exclude_file()
+            return
 
-        # Создаем или обновляем info/exclude файл с универсальными паттернами
+        logger.debug("Initializing git repository")
+        self.git_repo.mkdir(parents=True, exist_ok=True)
+
+        git_dir = str(self.git_repo)
+        work_tree = str(self.config_dir)
+
+        try:
+            # 1. Прямая инициализация bare-репозитория.
+            subprocess.run(
+                ["git", "init", "--bare", "--initial-branch=main", git_dir],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            # 2. Настройка core.bare=false и core.worktree для работы с ~/.config.
+            subprocess.run(
+                ["git", "--git-dir", git_dir, "config", "core.bare", "false"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "--git-dir", git_dir, "config", "core.worktree", work_tree],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "--git-dir", git_dir, "config", "user.name", "Pawlette"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "--git-dir", git_dir, "config", "user.email", "pawlette@example.com"],
+                check=True,
+            )
+
+            # 3. Создаём первый пустой коммит на main, чтобы ветка существовала для checkout -b.
+            subprocess.run(
+                [
+                    "git",
+                    "--git-dir",
+                    git_dir,
+                    "--work-tree",
+                    work_tree,
+                    "commit",
+                    "--allow-empty",
+                    "-m",
+                    "Initial commit",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to initialize git repository: {e.stderr}")
+            # Не выбрасываем исключение сразу, чтобы не ломать старт приложения,
+            # но последующие операции с git упадут с понятными ошибками.
+
+        # 4. Создаём или обновляем info/exclude файл с универсальными паттернами.
         self._create_git_exclude_file()
 
     def _create_git_exclude_file(self):
-        """Создаем или обновляем info/exclude файл с универсальными паттернами игнорирования"""
+        """Создаем или обновим info/exclude файл с универсальными паттернами игнорирования"""
         exclude_path = self.git_repo / "info" / "exclude"
         exclude_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1001,8 +1050,6 @@ class SelectiveThemeManager:
                 "git",
                 "--git-dir",
                 str(self.git_repo),
-                "--work-tree",
-                str(self.config_dir),
                 "show-ref",
                 "--verify",
                 f"refs/heads/{theme_name}",
