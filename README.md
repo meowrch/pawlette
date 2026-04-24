@@ -1,75 +1,71 @@
 # 🐾 Pawlette
-Универсальный менеджер тем.
-Легко переключайтесь между темами для своего рабочего стола, сохраняя индивидуальные настройки.
-Под капотом — гибкая система патчей и атомарные операции.
+Universal theme manager.
+Easily switch between themes for your desktop while preserving individual settings.
+Under the hood — flexible patch system and atomic operations.
 
-> [!Warning]
-> Проект находится в активной разработке.
-> Для production-использования рекомендуется версия 1.0+
+## 🌟 Features
+- **Full XDG support**
+- **Modular architecture** for config handlers
+- **Custom theme support** through unified format
+- **Partial configuration changes** (patch)
+- **Git-based version control** for user modifications
+- **Smart ignoring** of temporary files and caches
+- **Automatic saving** of user settings when switching themes
 
-## 🌟 Особенности
-- **Полная поддержка XDG**
-- **Модульная архитектура** обработчиков конфигов
-- **Поддержка пользовательских тем** через единый формат
-- **Частичное изменение** конфигураций (patch)
-- **Git-based управление версиями** пользовательских изменений
-- **Умное игнорирование** временных файлов и кешей
-- **Автоматическое сохранение** пользовательских настроек при переключении тем
-
-## ⚡ Быстрый старт
-Для установки на систему Arch Linux выполните команду:
+## ⚡ Quick Start
+To install on Arch Linux, run:
 ```bash
-yay -S pawlette-git
+yay -S pawlette
 ```
 
-## 🛠 Архитектура тем
-Темы хранятся в `/usr/share/pawlette/themes/` или в `~/.local/share/pawlette/themes/` со структурой:
+## 🛠 Theme Architecture
+Themes are stored in `/usr/share/pawlette/themes/` or `~/.local/share/pawlette/themes/` with the following structure:
 ```text
 theme-name/
-├── configs/           # Конфигурации приложений
+├── configs/           # Application configurations
 │   ├── kitty/
-│   │   └── kitty.conf.prepaw  # патч-файл
+│   │   └── kitty.conf.prepaw  # patch file
 │   ├── waybar/
 │   │   ├── style.css
 │   │   └── config.json
 │   └── ...
-├── gtk-theme/     # Папка с темой GTK
-├── gtk-theme/     # Папка с иконками
-└── wallpapers/    # Папка с обоями
+├── gtk-theme/     # GTK theme folder
+├── icon-theme/    # Icon theme folder
+└── wallpapers/    # Wallpapers folder
 ```
-Папка `configs` должна иметь ту-же архитектуру, что и `~/.config`.
-Вы можете создавать папки для каждого приложения, и добавлять конфигурации.
-При этом не обязательно добавлять абсолютно все конфигурации.
-Вы можете ограничиться лишь теми, которые должны изменяться от темы к теме.
+The `configs` folder must have the same architecture as `~/.config`.
+You can create folders for each application and add configurations.
+You don't need to add absolutely all configurations.
+You can limit yourself to only those that should change from theme to theme.
 
-Применение тем происходит в формате слияния двух директорий.
-Если определенного файла/папки не было, то он создастся.
-А если был, то изменит контент на тот, который был написан в вашей теме.
+Theme application happens as a merge of two directories.
+If a certain file/folder didn't exist, it will be created.
+If it existed, it will change the content to what was written in your theme.
 
-### Патчинг конфигураций
-Если файл уже существует в `.config/.../`,
-и вам нужно частично изменить его (вставить что-то в начало или конец), то
-для вас мы реализовали систему патчинга (patch).
+### Configuration Patching
+If a file already exists in `.config/.../`,
+and you need to partially modify it (insert something at the beginning or end),
+we've implemented a patching system for you.
 
-Она заключается в том, что вы создаете файл с абсолютно тем-же названием и расширением,
-что и в `.config/.../`, но при этом добавляете в конце суффикс ".prepaw" или ".postpaw".
+It consists of creating a file with exactly the same name and extension
+as in `.config/.../`, but adding the suffix ".prepaw" or ".postpaw" at the end.
 
 > [!NOTE]
-> Например был `kitty/kitty.conf`, а станет `kitty/kitty.conf.prepaw` \
-> Такой файл будет расцениваться как патч.
+> For example, if you had `kitty/kitty.conf`, it becomes `kitty/kitty.conf.prepaw` \
+> Such a file will be treated as a patch.
 
-Если суффикс `.prepaw`, то содержимое этого файла вставится перед основной частью оригинальной конфигурации.
-Соответственно, если суффикс `.postpaw`, то содержимое вставится после основной части оригинальной конфигурации.
+If the suffix is `.prepaw`, the content of this file will be inserted before the main part of the original configuration.
+Accordingly, if the suffix is `.postpaw`, the content will be inserted after the main part of the original configuration.
 
-Помимо вставок, доступен JSON merge-патч: создайте файл с суффиксом `.jsonpaw` рядом с целевым JSON (например, `waybar/config.json.jsonpaw`). Его содержимое должно быть JSON-объектом; он рекурсивно смержится в целевой файл:
+In addition to insertions, JSON merge-patch is available: create a file with the `.jsonpaw` suffix next to the target JSON (for example, `waybar/config.json.jsonpaw`). Its content must be a JSON object; it will be recursively merged into the target file:
 
-- существующие ключи переопределяются значениями из `.jsonpaw`;
-- отсутствующие ключи добавляются;
-- вложенные объекты мержатся глубоко.
+- existing keys are overridden with values from `.jsonpaw`;
+- missing keys are added;
+- nested objects are merged deeply.
 
-Пример:
+Example:
 
-Оригинал `~/.config/waybar/config.json`:
+Original `~/.config/waybar/config.json`:
 ```json
 {
   "layer": "bottom",
@@ -78,7 +74,7 @@ theme-name/
 }
 ```
 
-Патч `configs/waybar/config.json.jsonpaw`:
+Patch `configs/waybar/config.json.jsonpaw`:
 ```json
 {
   "layer": "top",
@@ -87,7 +83,7 @@ theme-name/
 }
 ```
 
-Результат:
+Result:
 ```json
 {
   "layer": "top",
@@ -97,61 +93,61 @@ theme-name/
 }
 ```
 
-JSON merge применяется перед `.prepaw`/`.postpaw`.
+JSON merge is applied before `.prepaw`/`.postpaw`.
 
-## 🧠 Селективный менеджер тем
-Pawlette использует инновационную систему селективного управления темами на базе Git. Это означает:
+## 🧠 Selective Theme Manager
+Pawlette uses an innovative selective theme management system based on Git. This means:
 
-- **Каждая тема = отдельная ветка** в internal git-репозитории
-- **Пользовательские изменения** автоматически сохраняются как uncommitted changes
-- **Переключение между темами** сохраняет ваши индивидуальные настройки
-- **История изменений** доступна для каждой темы
-- **Умное игнорирование** временных файлов и кешей
+- **Each theme = separate branch** in internal git repository
+- **User changes** are automatically saved as uncommitted changes
+- **Switching between themes** preserves your individual settings
+- **Change history** is available for each theme
+- **Smart ignoring** of temporary files and caches
 
-### Рабочий процесс:
-1. **Применение темы** → создается ветка темы, применяются базовые конфигурации
-2. **Ваши изменения** → отслеживаются как uncommitted changes в git
-3. **Переключение темы** → автоматически сохраняет ваши изменения и переключается на другую ветку
-4. **Возврат к теме** → восстанавливает вашу персонализированную версию
+### Workflow:
+1. **Apply theme** → theme branch is created, base configurations are applied
+2. **Your changes** → tracked as uncommitted changes in git
+3. **Switch theme** → automatically saves your changes and switches to another branch
+4. **Return to theme** → restores your personalized version
 
-### Преимущества:
-- 🔄 **Безопасность**: невозможно потерять пользовательские настройки
-- 📚 **История**: полная история изменений для каждой темы
-- 🎯 **Селективность**: изменяются только релевантные файлы
-- 🧹 **Чистота**: автоматическое игнорирование "мусорных" файлов
+### Benefits:
+- 🔄 **Safety**: impossible to lose user settings
+- 📚 **History**: complete change history for each theme
+- 🎯 **Selectivity**: only relevant files are changed
+- 🧹 **Cleanliness**: automatic ignoring of "junk" files
 
-## 🎛 Управление темами
-| Команда                    | Описание                                      |
+## 🎛 Theme Management
+| Command                    | Description                                   |
 | -------------------------- | --------------------------------------------- |
-| `pawlette generate-config` | Сгенерировать конфигурацию по умолчанию       |
-| `pawlette get-themes`      | Список установленных тем                      |
-| `pawlette get-themes-info` | JSON с информацией об установленных темах     |
-| `pawlette set-theme <name>`| Применить указанную тему                      |
-| `pawlette apply <name>`    | Применить указанную тему (алиас)              |
-| `pawlette current-theme`   | Показать текущую активную тему                |
-| `pawlette restore`         | Восстановить оригинальный вид                 |
-| `pawlette reset-theme <name>` | Сбросить тему к чистому состоянию          |
+| `pawlette generate-config` | Generate default configuration                |
+| `pawlette get-themes`      | List installed themes                         |
+| `pawlette get-themes-info` | JSON with information about installed themes  |
+| `pawlette set-theme <name>`| Apply specified theme                         |
+| `pawlette apply <name>`    | Apply specified theme (alias)                 |
+| `pawlette current-theme`   | Show current active theme                     |
+| `pawlette restore`         | Restore original appearance                   |
+| `pawlette reset-theme <name>` | Reset theme to clean state                |
 
-## 📦 Установка, обновление и удаление тем
-| Команда                              | Описание                                 |
-| ------------------------------------ | ---------------------------------------- |
-| `pawlette get-store-themes`          | JSON со всеми темами из удалённого магазина |
-| `pawlette install-theme <name/url/path>` | Установить тему по имени из репозитория, по ссылке на архив или из локального файла архива |
-| `pawlette update-theme <name>`       | Обновить тему из официального репозитория   |
-| `pawlette update-all-themes`         | Обновить все темы                           |
-| `pawlette uninstall-theme <name>` | Удалить тему (локальные файлы и кэш)      |
+## 📦 Installing, Updating and Removing Themes
+| Command                              | Description                                 |
+| ------------------------------------ | ------------------------------------------- |
+| `pawlette get-store-themes`          | JSON with all themes from remote store      |
+| `pawlette install-theme <name/url/path>` | Install theme by name from repository, by archive URL or from local archive file |
+| `pawlette update-theme <name>`       | Update theme from official repository       |
+| `pawlette update-all-themes`         | Update all themes                           |
+| `pawlette uninstall-theme <name>`    | Remove theme (local files and cache)        |
 
-## 📜 Управление версиями и историей
-| Команда                                      | Описание                                    |
+## 📜 Version Control and History
+| Command                                      | Description                                 |
 | -------------------------------------------- | ------------------------------------------- |
-| `pawlette status`                            | Показать статус и незакоммиченные изменения |
-| `pawlette history [theme] [--limit N]`      | Показать историю коммитов для темы         |
-| `pawlette user-changes [theme]`             | Показать информацию о пользовательских изменениях |
-| `pawlette restore-commit <hash> [theme]`    | Восстановить изменения из конкретного коммита |
+| `pawlette status`                            | Show status and uncommitted changes         |
+| `pawlette history [theme] [--limit N]`      | Show commit history for theme               |
+| `pawlette user-changes [theme]`              | Show information about user changes         |
+| `pawlette restore-commit <hash> [theme]`    | Restore changes from specific commit        |
 
-### Примеры использования:
+### Usage Examples:
 ```bash
-# Проверить текущий статус
+# Check current status
 pawlette status
 # ➤ Current theme: dark-blue
 # ⚠️  You have 3 uncommitted changes
@@ -160,45 +156,45 @@ pawlette status
 #   - waybar/config.json
 #   - alacritty/alacritty.yml
 
-# Посмотреть историю текущей темы
+# View history of current theme
 pawlette history
 # 📜 History for theme: dark-blue
-# 👤 a1b2c3d Персональные настройки шрифтов [USER]
-# 🔧 e4f5g6h Обновление конфигурации waybar
-# 🔧 h7i8j9k Первоначальное применение темы
+# 👤 a1b2c3d Personal font settings [USER]
+# 🔧 e4f5g6h Update waybar configuration
+# 🔧 h7i8j9k Initial theme application
 
-# Посмотреть, какие файлы изменены в теме
+# View which files are modified in theme
 pawlette user-changes dark-blue
 # 🔍 User changes for theme: dark-blue
 # Found 2 modified files:
 #   📝 kitty/kitty.conf
 #   📝 waybar/style.css
 
-# Восстановить определенный коммит
+# Restore specific commit
 pawlette restore-commit a1b2c3d
 # ✅ Successfully restored commit a1b2c3d for theme dark-blue
 ```
 
-## 🔄 Управление бэкапами
-| Команда                                                             | Описание                       |
+## 🔄 Backup Management
+| Command                                                             | Description                    |
 | ------------------------------------------------------------------- | ------------------------------ |
-| `pawlette backup list ~/.config/<APP>/config.conf`                  | Показать все версии файла      |
-| `pawlette backup restore ~/.config/<APP>/config.conf`               | Восстановить последнюю версию  |
-| `pawlette backup restore ~/.config/<APP>/config.conf --hash abc123` | Восстановить конкретную версию |
-| `pawlette system-backup list`                                       | Показать системные бэкапы      |
-| `pawlette system-backup create --comment "Before dark theme"`       | Создать полный бэкап           |
-| `pawlette system-backup restore BACKUP_ID`                          | Откатить всю систему           |
+| `pawlette backup list ~/.config/<APP>/config.conf`                  | Show all versions of file      |
+| `pawlette backup restore ~/.config/<APP>/config.conf`               | Restore latest version         |
+| `pawlette backup restore ~/.config/<APP>/config.conf --hash abc123` | Restore specific version       |
+| `pawlette system-backup list`                                       | Show system backups            |
+| `pawlette system-backup create --comment "Before dark theme"`       | Create full backup             |
+| `pawlette system-backup restore BACKUP_ID`                          | Rollback entire system         |
 
-## ☕ Поддержать проект
-Если Pawlette делает ваш рабочий стол красивее:
-| Криптовалюта | Адрес                                              |
-| ------------ | -------------------------------------------------- |
-| **TON**      | `UQB9qNTcAazAbFoeobeDPMML9MG73DUCAFTpVanQnLk3BHg3` |
-| **Ethereum** | `0x56e8bf8Ec07b6F2d6aEdA7Bd8814DB5A72164b13`       |
-| **Bitcoin**  | `bc1qt5urnw7esunf0v7e9az0jhatxrdd0smem98gdn`       |
-| **Tron**     | `TBTZ5RRMfGQQ8Vpf8i5N8DZhNxSum2rzAs`               |
+## ☕ Support the Project
+If Pawlette makes your desktop more beautiful:
+| Cryptocurrency | Address                                            |
+| -------------- | -------------------------------------------------- |
+| **TON**        | `UQB9qNTcAazAbFoeobeDPMML9MG73DUCAFTpVanQnLk3BHg3` |
+| **Ethereum**   | `0x56e8bf8Ec07b6F2d6aEdA7Bd8814DB5A72164b13`       |
+| **Bitcoin**    | `bc1qt5urnw7esunf0v7e9az0jhatxrdd0smem98gdn`       |
+| **Tron**       | `TBTZ5RRMfGQQ8Vpf8i5N8DZhNxSum2rzAs`               |
 
-Ваша поддержка мотивирует нас делать больше крутых фич! ❤️
+Your support motivates us to make more cool features! ❤️
 
-## 📊 Статистика
+## 📊 Statistics
 [![Star History Chart](https://api.star-history.com/svg?repos=meowrch/pawlette&type=Date)](https://star-history.com/#meowrch/pawlette&Date)

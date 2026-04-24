@@ -1,31 +1,10 @@
 name: AUR Packages Deployment
 
 on:
-  push:
-    branches: [main]
   release:
     types: [published]
 
 jobs:
-  deploy-git:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-            fetch-depth: 0
-
-      - name: Deploy Git version
-        uses: KSXGitHub/github-actions-deploy-aur@master
-        with:
-          pkgname: pawlette-git
-          pkgbuild: ./PKGBUILD
-          commit_username: ${{ secrets.AUR_USERNAME }}
-          commit_email: ${{ secrets.AUR_EMAIL }}
-          ssh_private_key: ${{ secrets.AUR_SSH_KEY }}
-          commit_message: "Git version update"
-          allow_empty_commits: "true"
-
   deploy-stable:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
