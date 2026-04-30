@@ -1,11 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pawlette"
-version = "0.1.0"
-description = "😺 Utility for changing themes in the meowrch"
+version = "2.0.0"
+description = "Modern theme manager for linux with template engine and dynamic theming"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [
   {name = "dimflix", email = "dimflix.official@gmail.com"},
 ]
@@ -13,40 +17,36 @@ maintainers = [
   {name = "dimflix", email = "dimflix.official@gmail.com"},
 ]
 dependencies = [
-    "loguru>=0.7.3",
-    "packaging>=26.0",
-    "pydantic>=2.13.0,<3.0.0",
-    "requests>=2.33.1",
-    "systemd>=0.17.1",
-    "tqdm>=4.67.3",
+    "pillow>=12.1.1",
 ]
 
 [project.urls]
 Homepage = "https://github.com/meowrch/pawlette"
-Documentation = "https://github.com/meowrch/pawlette/wiki"
+Documentation = "https://meowrch.github.io/en/meowrch-base/ecosystem/pawlette/pawlette/"
 Repository = "https://github.com/meowrch/pawlette.git"
 "Bug Tracker" = "https://github.com/meowrch/pawlette/issues"
-Changelog = "https://github.com/meowrch/pawlette/blob/master/CHANGELOG.md"
 
 [project.scripts]
-pawlette = "pawlette.__main__:main"
+pawlette = "pawlette.cli.main:main"
 
 [tool.pytest.ini_options]
-pythonpath = "src"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pawlette"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "docs"]
+skips = ["B404", "B603"]
+tests = ["B102", "B101", "B301"]
 
 [dependency-groups]
 dev = [
     "detect-secrets>=1.5.0",
     "pre-commit>=4.5.1",
     "pytest>=9.0.3",
+    "pytest-cov",
     "ruff>=0.15.10",
     "vulture>=2.16",
 ]
-
-[tool.uv]
-package=true
-
-[tool.bandit]
-exclude_dirs = ["tests", "docs"]
-skips = ["B404", "B603"]
-tests = ["B102", "B101", "B301"]

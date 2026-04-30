@@ -1,0 +1,14 @@
+# ╔══════════════════════════════════════════════════════════╗
+# ║  This file is generated automatically.                   ║
+# ║  Do not edit it directly—changes will be lost            ║
+# ║  the next time the theme is changed.                     ║
+# ║                                                          ║
+# ║  Edit the template:                                      ║
+# ║  ~/.config/hypr/pawlette.conf.pawlette                   ║
+# ╚══════════════════════════════════════════════════════════╝
+
+general {
+    col.active_border   = rgb({{color_primary | strip}}) rgb({{color_primary | darken 15 | strip }}) 45deg
+    col.inactive_border = rgb({{color_border_inactive | strip}})
+    col.nogroup_border  = rgb({{color_bg_alt | strip}})
+}

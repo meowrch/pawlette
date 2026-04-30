@@ -1,0 +1,3 @@
+# Your config...
+
+source $HOME/.config/zsh/themes/pawlette.zsh

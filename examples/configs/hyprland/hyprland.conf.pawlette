@@ -1,0 +1,22 @@
+# Hyprland config — pawlette template
+# Edit THIS file, not hyprland.conf
+
+general {
+    col.active_border   = rgb({{color_primary | strip}})
+    col.inactive_border = rgb({{color_border_inactive | strip}})
+    col.nogroup_border  = rgb({{color_bg_alt | strip}})
+    border_size         = 2
+    gaps_in             = 5
+    gaps_out            = 10
+}
+
+decoration {
+    rounding = 8
+    shadow_color = rgba({{color_bg | strip}}cc)
+    shadow_range = 15
+    shadow_render_power = 3
+}
+
+animations {
+    enabled = true
+}

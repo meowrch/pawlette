@@ -1,0 +1,621 @@
+dark: true;
+
+// === pawlette variables ===
+// UI roles
+pwBg:                {{color_bg}};
+pwBgAlt:             {{color_bg_alt}};
+pwSurface:           {{color_surface}};
+pwSurfaceAlt:        {{color_surface_alt}};
+pwText:              {{color_text}};
+pwTextMuted:         {{color_text_muted}};
+pwTextSubtle:        {{color_text_subtle}};
+pwPrimary:           {{color_primary}};
+pwSecondary:         {{color_secondary}};
+pwBorderActive:      {{color_border_active}};
+pwBorderInactive:    {{color_border_inactive}};
+pwSelectionBg:       {{color_selection_bg}};
+// Semantic
+pwRed:               {{color_red}};
+pwGreen:             {{color_green}};
+pwYellow:            {{color_yellow}};
+pwBlue:              {{color_blue}};
+pwCyan:              {{color_cyan}};
+pwMagenta:           {{color_magenta}};
+// ANSI
+pwAnsi0:             {{ansi_color0}};
+pwAnsi7:             {{ansi_color7}};
+pwAnsi8:             {{ansi_color8}};
+pwAnsi15:            {{ansi_color15}};
+
+// Transparent variants (cc = ~80% opacity)
+pwBgT:               {{color_bg}}cc;
+pwBgAltT:            {{color_bg_alt}}cc;
+pwSurfaceT:          {{color_surface}}cc;
+pwSurfaceAltT:       {{color_surface_alt}}cc;
+pwBgShadow:          {{color_bg}}11;
+pwSelectionBgT:      {{color_selection_bg}}cc;
+pwTextSubtleT:       {{color_text_subtle}}cc;
+
+// === window base ===
+windowFg:                 pwText;
+windowFgActive:           pwText;
+windowFgOver:             pwText;
+windowBoldFg:             pwText;
+windowBoldFgOver:         pwText;
+windowBg:                 pwBg;
+windowBgActive:           pwSurfaceAlt;
+windowBgOver:             pwSurface;
+windowBgRipple:           pwSurface;
+windowActiveTextFg:       pwText;
+windowSubTextFg:          pwTextMuted;
+windowSubTextFgOver:      pwTextSubtle;
+windowShadowFg:           pwBg;
+windowShadowFgFallback:   pwBg;
+
+// === scrollbar ===
+scrollBarBg:       pwSurfaceAltT;
+scrollBarBgOver:   pwSurfaceT;
+scrollBg:          pwSurfaceT;
+scrollBgOver:      pwSurfaceT;
+
+// === shadow ===
+shadowFg: pwBgShadow;
+
+// === menu / popups ===
+menuBg:             pwBg;
+menuBgOver:         pwSurface;
+menuBgRipple:       pwSurfaceAlt;
+menuFgDisabled:     pwTextMuted;
+menuIconFg:         pwText;
+menuIconFgOver:     pwTextMuted;
+menuSeparatorFg:    pwSurface;
+menuSubmenuArrowFg: pwText;
+
+// === active buttons ===
+activeButtonBg:              pwPrimary;
+activeButtonBgOver:          pwPrimary;
+activeButtonBgRipple:        pwPrimary;
+activeButtonFg:              pwBg;
+activeButtonFgOver:          pwBg;
+activeButtonSecondaryFg:     pwBgAlt;
+activeButtonSecondaryFgOver: pwBgAlt;
+activeLineFg:                pwSurfaceAlt;
+activeLineFgError:           pwRed;
+
+// === light / outline buttons ===
+attentionButtonBgOver:    pwSurfaceT;
+attentionButtonBgRipple:  pwSurface;
+attentionButtonFg:        pwText;
+attentionButtonFgOver:    pwText;
+lightButtonBg:            pwSurface;
+lightButtonBgOver:        pwSurface;
+lightButtonBgRipple:      pwSurfaceAlt;
+lightButtonFg:            pwPrimary;
+lightButtonFgOver:        lightButtonFg;
+outlineButtonBg:             windowBg;
+outlineButtonBgOver:         pwSurface;
+outlineButtonBgRipple:       pwSurfaceAlt;
+outlineButtonOutlineFg:      pwBorderInactive;
+
+// === slider ===
+sliderBgActive:   pwSurfaceAlt;
+sliderBgInactive: pwSurface;
+
+// === box / dialog ===
+boxBg:                  pwBg;
+boxSearchBg:            pwBg;
+boxTextFg:              pwText;
+boxTextFgError:         pwRed;
+boxTextFgGood:          pwText;
+boxTitleAdditionalFg:   pwTextMuted;
+boxTitleCloseFg:        pwText;
+boxTitleCloseFgOver:    pwText;
+boxTitleFg:             pwText;
+cancelIconFg:           pwText;
+cancelIconFgOver:       pwText;
+
+// === checkbox / radio ===
+checkboxFg: pwTextMuted;
+
+// === toast ===
+toastBg: pwBgT;
+toastFg: windowFgActive;
+
+// === bot keyboard ===
+botKbBg:     pwSurface;
+botKbDownBg: pwSurfaceAlt;
+
+// === calls ===
+callAnswerBg:               pwGreen;
+callAnswerBgOuter:          pwGreen;
+callAnswerRipple:           pwGreen;
+callArrowFg:                pwBlue;
+callArrowMissedFg:          pwRed;
+callBarBg:                  pwGreen;
+callBarBgMuted:             pwRed;
+callBarFg:                  pwBg;
+callBarMuteRipple:          pwGreen;
+callBarUnmuteRipple:        pwRed;
+callBg:                     pwBgT;
+callBgButton:               pwBgAltT;
+callBgOpaque:               pwBgAlt;
+callCancelBg:               pwRed;
+callCancelFg:               pwBg;
+callCancelRipple:           pwMagenta;
+callFingerprintBg:          pwBgT;
+callHangupBg:               pwRed;
+callHangupRipple:           pwMagenta;
+callIconActiveRipple:       pwBlue;
+callIconBg:                 pwGreen;
+callIconBgActive:           pwBlue;
+callIconFg:                 pwBg;
+callIconFgActive:           pwBg;
+callMuteRipple:             pwRed;
+callNameFg:                 windowFg;
+callStatusFg:               windowSubTextFg;
+
+// === dialogs (chat list) ===
+dialogsBg:                      windowBg;
+dialogsBgActive:                pwSurface;
+dialogsBgOver:                  pwSurface;
+dialogsChatIconFg:              windowFg;
+dialogsChatIconFgActive:        windowFgActive;
+dialogsChatIconFgOver:          windowBoldFgOver;
+dialogsDateFg:                  windowSubTextFg;
+dialogsDateFgActive:            windowSubTextFg;
+dialogsDateFgOver:              windowSubTextFg;
+dialogsDraftFg:                 windowFg;
+dialogsDraftFgActive:           windowFg;
+dialogsDraftFgOver:             windowFg;
+dialogsForwardBg:               pwSurface;
+dialogsForwardFg:               windowFgActive;
+dialogsMenuIconFg:              menuIconFg;
+dialogsMenuIconFgOver:          menuIconFgOver;
+dialogsNameFg:                  windowFg;
+dialogsNameFgActive:            windowFgActive;
+dialogsNameFgOver:              windowBoldFgOver;
+dialogsOnlineBadgeFg:           windowFg;
+dialogsOnlineBadgeFgActive:     windowFg;
+dialogsRippleBg:                pwSurface;
+dialogsRippleBgActive:          pwSurfaceAlt;
+dialogsSendingIconFg:           windowFg;
+dialogsSendingIconFgActive:     windowFg;
+dialogsSendingIconFgOver:       windowFg;
+dialogsSentIconFg:              pwPrimary;
+dialogsSentIconFgActive:        pwPrimary;
+dialogsSentIconFgOver:          pwPrimary;
+dialogsTextFg:                  windowFg;
+dialogsTextFgActive:            windowFgActive;
+dialogsTextFgOver:              windowFg;
+dialogsTextFgService:           windowFg;
+dialogsTextFgServiceActive:     windowFg;
+dialogsTextFgServiceOver:       windowFg;
+dialogsUnreadBg:                pwPrimary;
+dialogsUnreadBgActive:          pwPrimary;
+dialogsUnreadBgMuted:           pwText;
+dialogsUnreadBgMutedActive:     pwText;
+dialogsUnreadBgMutedOver:       pwText;
+dialogsUnreadBgOver:            pwPrimary;
+dialogsUnreadFg:                pwBg;
+dialogsUnreadFgActive:          pwBg;
+dialogsUnreadFgOver:            pwBg;
+dialogsVerifiedIconBg:          pwPrimary;
+dialogsVerifiedIconBgActive:    pwPrimary;
+dialogsVerifiedIconBgOver:      pwPrimary;
+dialogsVerifiedIconFg:          pwBg;
+dialogsVerifiedIconFgActive:    pwBg;
+dialogsVerifiedIconFgOver:      pwBg;
+
+// === emoji panel ===
+emojiIconFg:         windowFg;
+emojiIconFgActive:   windowFg;
+emojiPanBg:          windowBg;
+emojiPanCategories:  windowBg;
+emojiPanHeaderBg:    windowBg;
+emojiPanHeaderFg:    windowFg;
+
+// === filter input ===
+filterInputActiveBg:   windowBg;
+filterInputBorderFg:   windowBg;
+filterInputInactiveBg: windowBg;
+
+// === group call ===
+groupCallActiveFg:              windowFg;
+groupCallBg:                    windowBg;
+groupCallForceMuted1:           pwRed;
+groupCallForceMuted2:           pwRed;
+groupCallForceMuted3:           pwRed;
+groupCallForceMutedBar1:        pwRed;
+groupCallForceMutedBar2:        pwRed;
+groupCallForceMutedBar3:        pwRed;
+groupCallIconFg:                pwBg;
+groupCallLeaveBg:               pwRed;
+groupCallLeaveBgRipple:         pwMagenta;
+groupCallLive1:                 pwBlue;
+groupCallLive2:                 pwBlue;
+groupCallMemberActiveIcon:      windowFg;
+groupCallMemberActiveStatus:    windowFg;
+groupCallMemberInactiveIcon:    windowSubTextFg;
+groupCallMemberInactiveStatus:  windowSubTextFg;
+groupCallMemberMutedIcon:       pwRed;
+groupCallMemberNotJoinedStatus: windowSubTextFg;
+groupCallMembersBg:             windowBg;
+groupCallMembersBgOver:         pwSurface;
+groupCallMembersBgRipple:       pwSurfaceAlt;
+groupCallMembersFg:             windowFg;
+groupCallMenuBg:                pwSurface;
+groupCallMenuBgOver:            pwSurfaceAlt;
+groupCallMenuBgRipple:          pwSurface;
+groupCallMuted1:                pwYellow;
+groupCallMuted2:                pwYellow;
+groupCallVideoSubTextFg:        windowSubTextFg;
+groupCallVideoTextFg:           windowFg;
+
+// === history / chat ===
+historyCallArrowInFg:               pwBlue;
+historyCallArrowInFgSelected:       pwBlue;
+historyCallArrowMissedInFg:         pwRed;
+historyCallArrowMissedInFgSelected: pwRed;
+historyCallArrowOutFg:              pwBlue;
+historyCallArrowOutFgSelected:      pwBlue;
+historyComposeAreaBg:               windowBg;
+historyComposeAreaFg:               windowFg;
+historyComposeAreaFgService:        windowFg;
+historyComposeButtonBg:             windowBg;
+historyComposeButtonBgOver:         pwSurface;
+historyComposeButtonBgRipple:       pwSurfaceAlt;
+historyComposeIconFg:               menuIconFg;
+historyComposeIconFgOver:           menuIconFgOver;
+historyFileInIconFg:                pwBg;
+historyFileInIconFgSelected:        pwBg;
+historyFileInRadialFg:              windowFg;
+historyFileInRadialFgSelected:      windowFg;
+historyFileNameInFg:                windowFg;
+historyFileNameInFgSelected:        windowFg;
+historyFileNameOutFg:               windowFg;
+historyFileNameOutFgSelected:       windowFg;
+historyFileOutIconFg:               historyFileInIconFg;
+historyFileOutIconFgSelected:       historyFileInIconFgSelected;
+historyFileOutRadialFg:             windowFg;
+historyFileOutRadialFgSelected:     windowFg;
+historyFileThumbIconFg:             windowFg;
+historyFileThumbIconFgSelected:     windowFg;
+historyFileThumbRadialFg:           windowFg;
+historyFileThumbRadialFgSelected:   windowFg;
+historyForwardChooseBg:             pwBgT;
+historyForwardChooseFg:             windowFgActive;
+historyIconFgInverted:              windowFgActive;
+historyLinkInFg:                    pwPrimary;
+historyLinkInFgSelected:            pwSecondary;
+historyLinkOutFg:                   historyLinkInFg;
+historyLinkOutFgSelected:           historyLinkInFgSelected;
+historyOutIconFg:                   pwPrimary;
+historyOutIconFgSelected:           historyOutIconFg;
+
+// peer name colors (kept as semantic colors)
+historyPeer1NameFg:             pwRed;
+historyPeer1NameFgSelected:     pwRed;
+historyPeer1UserpicBg:          pwRed;
+historyPeer1UserpicBg2:         pwRed;
+historyPeer2NameFg:             pwGreen;
+historyPeer2NameFgSelected:     pwGreen;
+historyPeer2UserpicBg:          pwGreen;
+historyPeer2UserpicBg2:         pwGreen;
+historyPeer3NameFg:             pwYellow;
+historyPeer3NameFgSelected:     pwYellow;
+historyPeer3UserpicBg:          pwYellow;
+historyPeer3UserpicBg2:         pwYellow;
+historyPeer4NameFg:             pwBlue;
+historyPeer4NameFgSelected:     pwBlue;
+historyPeer4UserpicBg:          pwBlue;
+historyPeer4UserpicBg2:         pwBlue;
+historyPeer5NameFg:             pwMagenta;
+historyPeer5NameFgSelected:     pwMagenta;
+historyPeer5UserpicBg:          pwMagenta;
+historyPeer5UserpicBg2:         pwMagenta;
+historyPeer6NameFg:             pwPrimary;
+historyPeer6NameFgSelected:     pwPrimary;
+historyPeer6UserpicBg:          pwPrimary;
+historyPeer6UserpicBg2:         pwPrimary;
+historyPeer7NameFg:             pwCyan;
+historyPeer7NameFgSelected:     pwCyan;
+historyPeer7UserpicBg:          pwCyan;
+historyPeer7UserpicBg2:         pwCyan;
+historyPeer8NameFg:             pwSecondary;
+historyPeer8NameFgSelected:     pwSecondary;
+historyPeer8UserpicBg:          pwSecondary;
+historyPeer8UserpicBg2:         pwSecondary;
+historyPeerSavedMessagesBg:     pwPrimary;
+historyPeerSavedMessagesBg2:    pwPrimary;
+historyPeerUserpicFg:           pwBg;
+
+historyPinnedBg:                pwBgAlt;
+historyReplyBg:                 windowBg;
+historyReplyCancelFg:           windowFg;
+historyReplyCancelFgOver:       windowFg;
+historyReplyIconFg:             windowSubTextFg;
+historyScrollBarBg:             scrollBarBg;
+historyScrollBarBgOver:         scrollBarBgOver;
+historyScrollBg:                scrollBg;
+historyScrollBgOver:            scrollBgOver;
+historySendIconFg:              windowFg;
+historySendIconFgOver:          windowFg;
+historySendingInIconFg:         windowSubTextFg;
+historySendingInvertedIconFg:   windowSubTextFg;
+historySendingOutIconFg:        windowSubTextFg;
+historyTextInFg:                windowFg;
+historyTextInFgSelected:        windowFg;
+historyTextOutFg:               windowFg;
+historyTextOutFgSelected:       windowFg;
+historyToDownBg:                pwSurface;
+historyToDownBgOver:            pwSurfaceAlt;
+historyToDownBgRipple:          pwTextSubtle;
+historyToDownFg:                windowSubTextFg;
+historyToDownFgOver:            menuIconFgOver;
+historyToDownShadow:            pwBgT;
+historyUnreadBarBg:             pwSurface;
+historyUnreadBarBorder:         shadowFg;
+historyUnreadBarFg:             pwTextSubtle;
+historyVideoMessageProgressFg:  windowFg;
+
+// === images ===
+imageBg:            pwBg;
+imageBgTransparent: windowBg;
+
+// === important tooltip ===
+importantTooltipBg:     toastBg;
+importantTooltipFg:     toastFg;
+importantTooltipFgLink: pwPrimary;
+
+// === input ===
+inputBorderFg:           pwBorderInactive;
+introBg:                 windowBg;
+introCoverBottomBg:      pwSurfaceAlt;
+introCoverIconsFg:       pwBorderInactive;
+introCoverPlaneInner:    pwPrimary;
+introCoverPlaneOuter:    pwSurfaceAlt;
+introCoverPlaneTop:      pwAnsi15;
+introCoverPlaneTrace:    pwBorderInactive;
+introCoverTopBg:         pwSurfaceAlt;
+introDescriptionFg:      windowFg;
+introErrorFg:            pwRed;
+introTitleFg:            windowFg;
+
+// === layer ===
+layerBg: pwBgAltT;
+
+// === main menu ===
+mainMenuBg:        windowBg;
+mainMenuCloudBg:   pwSurfaceAlt;
+mainMenuCloudFg:   activeButtonFg;
+mainMenuCoverBg:   pwSurfaceAlt;
+mainMenuCoverFg:   windowFgActive;
+
+// === media ===
+mediaInFg:              windowFg;
+mediaInFgSelected:      windowFg;
+mediaOutFg:             windowFg;
+mediaOutFgSelected:     windowFg;
+mediaPlayerActiveFg:    pwPrimary;
+mediaPlayerBg:          windowBg;
+mediaPlayerDisabledFg:  windowSubTextFg;
+mediaPlayerInactiveFg:  sliderBgInactive;
+
+// === media viewer ===
+mediaviewBg:                    pwBgT;
+mediaviewCaptionBg:             pwBgT;
+mediaviewCaptionFg:             windowFgActive;
+mediaviewControlBg:             pwBgT;
+mediaviewControlFg:             windowFgActive;
+mediaviewFileBg:                windowBg;
+mediaviewFileBlueCornerFg:      pwBlue;
+mediaviewFileExtFg:             activeButtonFg;
+mediaviewFileGreenCornerFg:     pwGreen;
+mediaviewFileNameFg:            windowFg;
+mediaviewFileRedCornerFg:       pwRed;
+mediaviewFileSizeFg:            windowSubTextFg;
+mediaviewFileYellowCornerFg:    pwYellow;
+mediaviewMenuBg:                pwSurface;
+mediaviewMenuBgOver:            pwSurfaceAlt;
+mediaviewMenuBgRipple:          pwSurface;
+mediaviewMenuFg:                windowFgActive;
+mediaviewPlaybackActive:        pwBorderInactive;
+mediaviewPlaybackActiveOver:    pwSurfaceAlt;
+mediaviewPlaybackIconFg:        mediaviewPlaybackActive;
+mediaviewPlaybackIconFgOver:    mediaviewPlaybackActiveOver;
+mediaviewPlaybackInactive:      pwSurface;
+mediaviewPlaybackInactiveOver:  pwSurfaceAlt;
+mediaviewPlaybackProgressFg:    windowFg;
+mediaviewSaveMsgBg:             toastBg;
+mediaviewSaveMsgFg:             toastFg;
+mediaviewTextLinkFg:            pwPrimary;
+mediaviewTransparentBg:         pwAnsi15;
+mediaviewTransparentFg:         pwPrimary;
+mediaviewVideoBg:               imageBg;
+
+// === messages ===
+membersAboutLimitFg:        windowFg;
+msgBotKbIconFg:             windowFgActive;
+msgBotKbOverBgAdd:          pwSurface;
+msgBotKbRippleBg:           pwSurfaceAlt;
+msgDateImgBg:               pwBgT;
+msgDateImgBgOver:           pwBgT;
+msgDateImgBgSelected:       pwSurfaceT;
+msgDateImgFg:               windowFgActive;
+msgFile1Bg:                 pwBlue;
+msgFile1BgDark:             pwBlue;
+msgFile1BgOver:             pwBlue;
+msgFile1BgSelected:         pwBlue;
+msgFile2Bg:                 pwGreen;
+msgFile2BgDark:             pwGreen;
+msgFile2BgOver:             pwGreen;
+msgFile2BgSelected:         pwGreen;
+msgFile3Bg:                 pwRed;
+msgFile3BgDark:             pwRed;
+msgFile3BgOver:             pwRed;
+msgFile3BgSelected:         pwRed;
+msgFile4Bg:                 pwYellow;
+msgFile4BgDark:             pwYellow;
+msgFile4BgOver:             pwYellow;
+msgFile4BgSelected:         pwYellow;
+msgFileInBg:                pwCyan;
+msgFileInBgOver:            pwCyan;
+msgFileInBgSelected:        pwCyan;
+msgFileOutBg:               pwSecondary;
+msgFileOutBgOver:           pwSecondary;
+msgFileOutBgSelected:       pwSecondary;
+msgFileThumbLinkInFg:       lightButtonFg;
+msgFileThumbLinkInFgSelected: lightButtonFgOver;
+msgFileThumbLinkOutFg:      windowFg;
+msgFileThumbLinkOutFgSelected: windowFg;
+msgImgReplyBarColor:        windowFgActive;
+msgInBg:                    pwSurface;
+msgInBgSelected:            pwSurfaceAlt;
+msgInDateFg:                windowSubTextFg;
+msgInDateFgSelected:        windowSubTextFg;
+msgInMonoFg:                windowFg;
+msgInMonoFgSelected:        windowFg;
+msgInReplyBarColor:         pwPrimary;
+msgInReplyBarSelColor:      pwAnsi15;
+msgInServiceFg:             windowActiveTextFg;
+msgInServiceFgSelected:     windowActiveTextFg;
+msgInShadow:                pwBgShadow;
+msgInShadowSelected:        pwBgShadow;
+msgOutBg:                   msgInBg;
+msgOutBgSelected:           msgInBgSelected;
+msgOutDateFg:               msgInDateFg;
+msgOutDateFgSelected:       msgInDateFgSelected;
+msgOutMonoFg:               msgInMonoFg;
+msgOutMonoFgSelected:       msgInMonoFgSelected;
+msgOutReplyBarColor:        msgInReplyBarColor;
+msgOutReplyBarSelColor:     msgInReplyBarSelColor;
+msgOutServiceFg:            msgInServiceFg;
+msgOutServiceFgSelected:    msgInServiceFgSelected;
+msgOutShadow:               msgInShadow;
+msgOutShadowSelected:       msgInShadowSelected;
+msgSelectOverlay:           pwSurfaceAltT;
+msgServiceBg:               pwSurfaceT;
+msgServiceBgSelected:       pwSurface;
+msgServiceFg:               windowFgActive;
+msgStickerOverlay:          pwSurfaceAltT;
+msgWaveformInActive:        pwPrimary;
+msgWaveformInActiveSelected: pwPrimary;
+msgWaveformInInactive:      pwBorderInactive;
+msgWaveformInInactiveSelected: pwBorderInactive;
+msgWaveformOutActive:       msgWaveformInActive;
+msgWaveformOutActiveSelected: msgWaveformInActiveSelected;
+msgWaveformOutInactive:     msgWaveformInInactive;
+msgWaveformOutInactiveSelected: msgWaveformInInactiveSelected;
+
+// === notifications ===
+notificationBg:                 windowBg;
+notificationSampleCloseFg:      pwPrimary;
+notificationSampleNameFg:       windowFg;
+notificationSampleTextFg:       windowSubTextFg;
+notificationSampleUserpicFg:    pwPrimary;
+notificationsBoxMonitorFg:      windowFg;
+notificationsBoxScreenBg:       dialogsBgActive;
+
+// === overview ===
+overviewCheckBg:            pwBgT;
+overviewCheckBorder:        windowFg;
+overviewCheckFg:            pwBg;
+overviewCheckFgActive:      pwBg;
+overviewPhotoSelectOverlay: pwSurfaceAltT;
+
+// === photo crop ===
+photoCropFadeBg:  layerBg;
+photoCropPointFg: pwSelectionBgT;
+
+// === placeholder ===
+placeholderFg:       pwTextMuted;
+placeholderFgActive: pwText;
+
+// === profile ===
+profileAdminStartFg:      pwPrimary;
+profileVerifiedCheckBg:   pwPrimary;
+profileVerifiedCheckFg:   pwBg;
+
+// === radial ===
+radialBg: pwBgT;
+radialFg: windowFgActive;
+
+// === report spam ===
+reportSpamBg: windowBg;
+reportSpamFg: windowFg;
+
+// === search bar ===
+searchedBarBg: pwSurface;
+searchedBarFg: windowFg;
+
+// === side bar (filters) ===
+sideBarBadgeBg:       pwSurfaceAlt;
+sideBarBadgeBgMuted:  pwBorderInactive;
+sideBarBg:            pwBgAlt;
+sideBarBgActive:      pwSurface;
+sideBarBgRipple:      pwBg;
+sideBarIconFg:        windowFg;
+sideBarIconFgActive:  windowFg;
+sideBarTextFg:        windowFg;
+sideBarTextFgActive:  windowFg;
+
+// === slide animation ===
+slideFadeOutBg:       pwBgT;
+slideFadeOutShadowFg: windowShadowFg;
+
+// === small close icon ===
+smallCloseIconFg:     pwTextMuted;
+smallCloseIconFgOver: pwText;
+
+// === statistics ===
+statisticsChartActive:   pwSurfaceAltT;
+statisticsChartInactive: pwSurfaceT;
+
+// === stickers ===
+stickerPanDeleteBg: pwBgT;
+stickerPanDeleteFg: windowFgActive;
+stickerPreviewBg:   pwBgT;
+
+// === title bar ===
+titleBg:                        pwSurface;
+titleBgActive:                  titleBg;
+titleButtonBg:                  titleBg;
+titleButtonBgActive:            titleButtonBg;
+titleButtonBgActiveOver:        pwSurfaceAlt;
+titleButtonBgOver:              pwSurfaceAlt;
+titleButtonCloseBg:             titleButtonBg;
+titleButtonCloseBgActive:       titleButtonCloseBg;
+titleButtonCloseBgActiveOver:   pwSurfaceAlt;
+titleButtonCloseBgOver:         pwSurfaceAlt;
+titleButtonCloseFg:             pwBorderInactive;
+titleButtonCloseFgActive:       pwText;
+titleButtonCloseFgActiveOver:   pwText;
+titleButtonCloseFgOver:         pwText;
+titleButtonFg:                  pwText;
+titleButtonFgActive:            pwText;
+titleButtonFgActiveOver:        pwText;
+titleButtonFgOver:              pwText;
+titleFg:                        windowFg;
+titleFgActive:                  windowFg;
+titleShadow:                    pwBgT;
+
+// === tooltip ===
+tooltipBg:       pwSurface;
+tooltipBorderFg: pwSurfaceAlt;
+tooltipFg:       pwTextMuted;
+
+// === top bar ===
+topBarBg: pwBg;
+
+// === tray ===
+trayCounterBg:           pwGreen;
+trayCounterBgMacInvert:  pwGreen;
+trayCounterBgMute:       pwBlue;
+trayCounterFg:           pwBg;
+trayCounterFgMacInvert:  pwBg;
+
+// === video ===
+videoPlayIconBg:  pwBgT;
+videoPlayIconFg:  pwAnsi15;
+youtubePlayIconBg: pwPrimary;
+youtubePlayIconFg: pwBg;

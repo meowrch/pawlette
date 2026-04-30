@@ -1,0 +1,6 @@
+[meta]
+name        = "Catppuccin Mocha"
+variant     = "lavender"
+author      = "catppuccin"
+dark        = true
+source      = "https://github.com/catppuccin/catppuccin"

@@ -1,1 +1,3 @@
-#!/usr/bin/env python3
+"""Pawlette — theme management utility with plugin system."""
+
+__version__ = "2.0.0"
