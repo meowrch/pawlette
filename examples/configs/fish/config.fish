@@ -1,0 +1,3 @@
+# Your config...
+
+fish_config theme choose pawlette
