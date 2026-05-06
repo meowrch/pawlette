@@ -1,9 +1,9 @@
-# Nord — https://www.nordtheme.com/
+# Nord — https://github.com/nordtheme/nord
 
 [colors]
 # --- Surfaces ---
 color_bg              = "#2e3440"  # Nord0
-color_bg_alt          = "#242933"  # Nord0 потемнённый
+color_bg_alt          = "#242933"  # Nord0 затемнённый
 color_surface         = "#3b4252"  # Nord1
 color_surface_alt     = "#434c5e"  # Nord2
 
@@ -49,3 +49,31 @@ color_yellow          = "#ebcb8b"  # Nord13
 color_blue            = "#81a1c1"  # Nord9
 color_cyan            = "#88c0d0"  # Nord8
 color_magenta         = "#b48ead"  # Nord15
+
+# ---------------------------------------------------------------------------
+# Variants — Nord Flavors
+# ---------------------------------------------------------------------------
+
+[variants.frost]
+color_primary         = "#5e81ac" # Nord10
+color_secondary       = "#81a1c1" # Nord9
+color_border_active   = "#5e81ac"
+color_cursor          = "#5e81ac"
+
+[variants.snow]
+color_primary         = "#eceff4" # Nord6
+color_secondary       = "#88c0d0" # Nord8
+color_border_active   = "#eceff4"
+color_cursor          = "#eceff4"
+
+[variants.aurora]
+color_primary         = "#b48ead" # Nord15
+color_secondary       = "#81a1c1" # Nord9
+color_border_active   = "#b48ead"
+color_cursor          = "#b48ead"
+
+[variants.nature]
+color_primary         = "#a3be8c" # Nord14
+color_secondary       = "#8fbcbb" # Nord7
+color_border_active   = "#a3be8c"
+color_cursor          = "#a3be8c"
