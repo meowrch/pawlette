@@ -10,18 +10,18 @@ color_surface_alt     = "#504945"  # bg2
 # --- Text ---
 color_text            = "#ebdbb2"  # fg
 color_text_muted      = "#bdae93"  # fg3
-color_text_subtle     = "#665c54"  # bg4
+color_text_subtle     = "#a89984"  # fg4
 
 # --- Accents ---
-color_primary         = "#d3869b"  # pink/mauve (purple)
-color_secondary       = "#83a598"  # aqua
+color_primary         = "#fabd2f"  # Bright Yellow
+color_secondary       = "#fe8019"  # Bright Orange
 
 # --- Borders ---
-color_border_active   = "#d3869b"
+color_border_active   = "#fabd2f"
 color_border_inactive = "#504945"
 
 # --- Cursor / Selection ---
-color_cursor          = "#d3869b"
+color_cursor          = "#fabd2f"
 color_selection_bg    = "#504945"  # bg2
 
 # --- ANSI 16 ---
@@ -31,7 +31,7 @@ ansi_color2           = "#98971a"  # green
 ansi_color3           = "#d79921"  # yellow
 ansi_color4           = "#458588"  # blue
 ansi_color5           = "#b16286"  # purple       (magenta)
-ansi_color6           = "#689d6a"  # aqua         (cyan)
+ansi_color6           = "#689d6a"  # aqua         (cyan) 
 ansi_color7           = "#a89984"  # fg4          (white)
 ansi_color8           = "#928374"  # bg gray      (bright black)
 ansi_color9           = "#fb4934"  # bright red
@@ -49,3 +49,25 @@ color_yellow          = "#fabd2f"
 color_blue            = "#83a598"
 color_cyan            = "#8ec07c"
 color_magenta         = "#d3869b"
+
+# ---------------------------------------------------------------------------
+# Variants — Gruvbox Flavors
+# ---------------------------------------------------------------------------
+
+[variants.green]
+color_primary         = "#b8bb26" # Bright Green
+color_secondary       = "#8ec07c" # Bright Aqua
+color_border_active   = "#b8bb26"
+color_cursor          = "#b8bb26"
+
+[variants.blue]
+color_primary         = "#83a598" # Bright Blue
+color_secondary       = "#d3869b" # Bright Purple
+color_border_active   = "#83a598"
+color_cursor          = "#83a598"
+
+[variants.orange]
+color_primary         = "#fe8019" # Bright Orange
+color_secondary       = "#fabd2f" # Bright Yellow
+color_border_active   = "#fe8019"
+color_cursor          = "#fe8019"

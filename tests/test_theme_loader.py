@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pawlette.rendering.themes import list_themes, load_theme
+from pawlette.rendering.themes import list_theme_variants, list_themes, load_theme
 
 
 MINIMAL_COLORS = {
@@ -87,3 +87,75 @@ def test_list_themes_empty_dir(tmp_path):
 
 def test_list_themes_nonexistent_dir(tmp_path):
     assert list_themes(tmp_path / "no-such-dir") == []
+
+
+def test_load_theme_with_valid_variant(tmp_path):
+    theme_dir = tmp_path / "variant-theme"
+    theme_dir.mkdir()
+    toml = theme_dir / "colors.toml"
+    toml.write_text(
+        "[colors]\n"
+        + "".join(f'{k} = "{v}"\n' for k, v in MINIMAL_COLORS.items())
+        + '\n[variants.pink]\ncolor_primary = "#f38ba8"\n'
+    )
+    palette = load_theme("variant-theme", tmp_path, variant="pink")
+    assert palette.color_primary == "#f38ba8"
+    assert palette.color_bg == "#1e1e2e"  # untouched
+
+
+def test_load_theme_with_missing_variant(tmp_path):
+    theme_dir = tmp_path / "no-variants"
+    theme_dir.mkdir()
+    toml = theme_dir / "colors.toml"
+    toml.write_text(
+        "[colors]\n"
+        + "".join(f'{k} = "{v}"\n' for k, v in MINIMAL_COLORS.items())
+    )
+    with pytest.raises(ValueError, match="has no variant"):
+        load_theme("no-variants", tmp_path, variant="ghost")
+
+
+def test_load_theme_variant_preserves_untouched_fields(tmp_path):
+    theme_dir = tmp_path / "partial"
+    theme_dir.mkdir()
+    toml = theme_dir / "colors.toml"
+    toml.write_text(
+        "[colors]\n"
+        + "".join(f'{k} = "{v}"\n' for k, v in MINIMAL_COLORS.items())
+        + '\n[variants.blue]\ncolor_primary = "#0000ff"\n'
+    )
+    palette = load_theme("partial", tmp_path, variant="blue")
+    assert palette.color_primary == "#0000ff"
+    assert palette.color_bg == "#1e1e2e"
+    assert palette.ansi_color0 == "#1e1e2e"
+
+
+def test_load_theme_variant_unknown_field(tmp_path):
+    theme_dir = tmp_path / "bad-variant"
+    theme_dir.mkdir()
+    toml = theme_dir / "colors.toml"
+    toml.write_text(
+        "[colors]\n"
+        + "".join(f'{k} = "{v}"\n' for k, v in MINIMAL_COLORS.items())
+        + '\n[variants.bad]\nunknown_field = "#ffffff"\n'
+    )
+    with pytest.raises(ValueError, match="overrides unknown fields"):
+        load_theme("bad-variant", tmp_path, variant="bad")
+
+
+def test_list_theme_variants(tmp_path):
+    theme_dir = tmp_path / "multi"
+    theme_dir.mkdir()
+    toml = theme_dir / "colors.toml"
+    toml.write_text(
+        "[colors]\n"
+        + "".join(f'{k} = "{v}"\n' for k, v in MINIMAL_COLORS.items())
+        + '\n[variants.lavender]\ncolor_primary = "#cba6f7"\n'
+        + '\n[variants.pink]\ncolor_primary = "#f38ba8"\n'
+    )
+    assert list_theme_variants("multi", tmp_path) == ["lavender", "pink"]
+
+
+def test_list_theme_variants_empty(tmp_path):
+    _write_theme(tmp_path, "plain", MINIMAL_COLORS)
+    assert list_theme_variants("plain", tmp_path) == []

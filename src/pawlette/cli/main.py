@@ -14,6 +14,7 @@ from pawlette.extraction import extract_from_hex
 from pawlette.extraction import extract_from_image
 from pawlette.plugins import run_plugins
 from pawlette.rendering import apply_templates
+from pawlette.rendering.themes import list_theme_variants
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -143,7 +144,7 @@ def cmd_apply(args: argparse.Namespace) -> int:
             args.value, mode=mode, backend=backend, backend_config=backend_config
         )
     elif args.source == "theme":
-        palette = _load_theme_palette(args.value)
+        palette = _load_theme_palette(args.value, variant=args.variant)
         if palette is None:
             log.error("Theme %r not found in %s", args.value, xdg.themes_dir())
             return 1
@@ -223,7 +224,11 @@ def cmd_list(_args: argparse.Namespace) -> int:
         return 0
 
     for theme in themes:
-        print(theme)
+        variants = list_theme_variants(theme, themes_path)
+        if variants:
+            print(f"{theme} ({', '.join(variants)})")
+        else:
+            print(theme)
 
     return 0
 
@@ -233,28 +238,16 @@ def cmd_list(_args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _load_theme_palette(theme_name: str) -> Palette | None:
-    try:
-        import tomllib
-    except ImportError:
-        try:
-            import tomli as tomllib  # type: ignore[no-redef]
-        except ImportError:
-            logging.error("tomllib/tomli not available.")
-            return None
+def _load_theme_palette(theme_name: str, variant: str | None = None) -> Palette | None:
+    from pawlette.rendering.themes import load_theme
 
-    theme_file = xdg.themes_dir() / theme_name / "colors.toml"
-    if not theme_file.exists():
+    try:
+        return load_theme(theme_name, xdg.themes_dir(), variant=variant)
+    except FileNotFoundError:
+        logging.error("Theme %r not found in %s", theme_name, xdg.themes_dir())
         return None
-
-    data = tomllib.loads(theme_file.read_text(encoding="utf-8"))
-    colors = data.get("colors", {})
-    try:
-        return Palette(
-            **{k: v for k, v in colors.items() if k in Palette.__dataclass_fields__}
-        )
-    except TypeError as exc:
-        logging.error("Theme %r is missing fields: %s", theme_name, exc)
+    except ValueError as exc:
+        logging.error("Theme %r error: %s", theme_name, exc)
         return None
 
 
@@ -312,6 +305,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Fallback color for matugen when using --matugen-prefer closest-to-fallback (default: from config or '#cba6f7')",
     )
 
+    apply_p.add_argument(
+        "--variant",
+        default=None,
+        help="Theme variant (e.g. 'pink', 'blue'). Only used with 'theme' source.",
+    )
     apply_p.add_argument("--dry-run", action="store_true")
     apply_p.add_argument("--skip-templates", action="store_true")
     apply_p.add_argument("--skip-plugins", action="store_true")
