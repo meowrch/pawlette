@@ -7,4 +7,4 @@ if __name__ == "__main__":
     sys.path.insert(0, src_path)
 
     # Запускаем модуль
-    runpy.run_module("pawlette.__main__", run_name="__main__")
+    runpy.run_module("pawlette.cli.main", run_name="__main__")
