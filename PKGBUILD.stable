@@ -102,7 +102,7 @@ post_install() {
     # Skip system users (uid < 1000)
     if [ "$uid" -ge 1000 ] && [ -d "$home" ]; then
       config_dir="$home/.config/pawlette"
-      config_file="$config_dir/pawlette.json"
+      config_file="$config_dir/pawlette.toml"
 
       if [ ! -f "$config_file" ]; then
         echo "Creating default config for user $name"
@@ -116,7 +116,7 @@ post_install() {
   pawlette migrate-from-v1
 
   echo "Pawlette installation completed!"
-  echo "Configuration file: ~/.config/pawlette/pawlette.json"
+  echo "Configuration file: ~/.config/pawlette/pawlette.toml"
   echo "Logs: journalctl -t pawlette"
 }
 

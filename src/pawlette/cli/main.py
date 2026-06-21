@@ -179,6 +179,33 @@ def cmd_apply(args: argparse.Namespace) -> int:
     return 0
 
 
+DEFAULT_TOML = """\
+# Pawlette configuration
+# See: https://github.com/meowrch/pawlette
+
+backend = "native"   # native or matugen
+mode = "dark"        # dark or light
+
+[backends.matugen]
+prefer = "saturation"
+fallback_color = "#cba6f7"
+"""
+
+
+def cmd_generate_config(_args: argparse.Namespace) -> int:
+    log = logging.getLogger(__name__)
+    config_path = xdg.config_dir() / "pawlette.toml"
+
+    if config_path.exists():
+        log.info("Config already exists at %s — not overwriting", config_path)
+        return 0
+
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(DEFAULT_TOML, encoding="utf-8")
+    log.info("Created default config at %s", config_path)
+    return 0
+
+
 def cmd_render(args: argparse.Namespace) -> int:
     log = logging.getLogger(__name__)
     palette = _load_palette()
@@ -327,9 +354,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
     migrate_p = sub.add_parser(
         "migrate-from-v1",
-        help="Migrating pawlette from v1 to the current version",
+        help="Migrate pawlette from v1 to the current version",
     )
     _add_common(migrate_p)
+
+    config_p = sub.add_parser(
+        "generate-config",
+        help="Create default pawlette.toml configuration",
+    )
+    _add_common(config_p)
 
     return parser
 
@@ -343,6 +376,7 @@ def main() -> None:
         "render": cmd_render,
         "list": cmd_list,
         "migrate-from-v1": migrate_from_v1,
+        "generate-config": cmd_generate_config,
     }
     sys.exit(handlers[args.command](args))
 
