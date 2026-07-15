@@ -118,8 +118,8 @@ def _map_matugen_to_palette(raw: dict[str, Any], mode: Mode = "dark") -> Palette
     # Derive semantic from primary hue (same as native backend logic)
     def _hex_to_hsl(h: str) -> tuple[float, float, float]:
         r, g, b = int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
-        hh, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-        return hh * 360, s, l
+        hh, lightness, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        return hh * 360, s, lightness
 
     def _sem(target_hue: float, l_off: float = 0.0) -> str:
         ph, ps, _ = _hex_to_hsl(primary)
@@ -152,14 +152,57 @@ def _map_matugen_to_palette(raw: dict[str, Any], mode: Mode = "dark") -> Palette
         if not hex_c.startswith("#"):
             hex_c = "#" + hex_c
         r, g, b = int(hex_c[1:3], 16), int(hex_c[3:5], 16), int(hex_c[5:7], 16)
-        h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-        r2, g2, b2 = colorsys.hls_to_rgb(h, min(1.0, l + delta), s)
+        h, lightness, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        r2, g2, b2 = colorsys.hls_to_rgb(h, min(1.0, lightness + delta), s)
         return f"#{round(r2 * 255):02x}{round(g2 * 255):02x}{round(b2 * 255):02x}"
+
+    def _lightness(hex_c: str) -> float:
+        """HSL lightness in [0, 1] of a #rrggbb string."""
+        if not isinstance(hex_c, str):
+            hex_c = str(hex_c)
+        hex_c = hex_c.strip().strip("'\"")
+        if not hex_c.startswith("#"):
+            hex_c = "#" + hex_c
+        r, g, b = int(hex_c[1:3], 16), int(hex_c[3:5], 16), int(hex_c[5:7], 16)
+        _, lightness, _ = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        return lightness
+
+    def _shift_lightness(hex_c: str, delta: float) -> str:
+        """Return *hex_c* with HSL lightness shifted by *delta* (clamped to [0, 1])."""
+        if not isinstance(hex_c, str):
+            hex_c = str(hex_c)
+        hex_c = hex_c.strip().strip("'\"")
+        if not hex_c.startswith("#"):
+            hex_c = "#" + hex_c
+        r, g, b = int(hex_c[1:3], 16), int(hex_c[3:5], 16), int(hex_c[5:7], 16)
+        h, lightness, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        r2, g2, b2 = colorsys.hls_to_rgb(h, max(0.0, min(1.0, lightness + delta)), s)
+        return f"#{round(r2 * 255):02x}{round(g2 * 255):02x}{round(b2 * 255):02x}"
+
+    # color_bg_alt must be one step LIGHTER than bg in dark mode (DARKER in
+    # light mode) — see Palette docstring ("Panels, sidebars — one step
+    # lighter than bg"). matugen's `surface_dim` is frequently equal to or
+    # darker than `background`, so prefer `surface_container_low` and derive
+    # the shade from bg when that tone is missing or not on the right side.
+    bg_step = 0.04 if mode == "dark" else -0.04
+    try:
+        bg_alt_cand: str | None = p("surface_container_low", "surface_bright")
+    except KeyError:
+        bg_alt_cand = None
+    bg_l = _lightness(bg)
+    if bg_alt_cand is None:
+        bg_alt = _shift_lightness(bg, bg_step)
+    elif mode == "dark" and _lightness(bg_alt_cand) > bg_l + 0.01:
+        bg_alt = bg_alt_cand
+    elif mode == "light" and _lightness(bg_alt_cand) < bg_l - 0.01:
+        bg_alt = bg_alt_cand
+    else:
+        bg_alt = _shift_lightness(bg, bg_step)
 
     return Palette(
         # UI
         color_bg=bg,
-        color_bg_alt=p("surface_dim", "surface_container_low", "surface"),
+        color_bg_alt=bg_alt,
         color_surface=p("surface_container", "surface_container_high"),
         color_surface_alt=p("surface_container_highest", "surface_container_high"),
         color_text=fg,
