@@ -67,9 +67,11 @@ EOF
 package() {
   cd "$srcdir/pawlette-$pkgver"
 
+  export UV_PYTHON_PREFERENCE=only-system
+
   # Install virtual environment
   install -d -m755 "$pkgdir/opt/$pkgname"
-  python -m venv "$pkgdir/opt/$pkgname/.venv"
+  /usr/bin/python -m venv "$pkgdir/opt/$pkgname/.venv"
   uv sync --no-dev --frozen --compile-bytecode
 
   # Install application files
